@@ -28,7 +28,7 @@ export const getDashboardStats = async (req: Request, res: Response) => {
 
     res.json({
       stats: {
-        totalRevenue: `$${totalRevenue.toFixed(2)}`,
+        totalRevenue: `₹${totalRevenue.toFixed(2)}`,
         totalOrders,
         totalReservations,
         totalCustomers,

@@ -21,9 +21,10 @@ import {
 import { 
   getAvailableOrders, 
   getMyDeliveryOrders, 
-  updateDeliveryStatus, 
   getDeliveryStats,
-  updateLocation 
+  updateLocation,
+  generateDeliveryPaymentLink,
+  getOrderStatus
 } from "@/lib/api";
 import clsx from "clsx";
 
@@ -40,6 +41,8 @@ export default function DeliveryDashboard() {
   const [otpValue, setOtpValue] = useState("");
   const [otpError, setOtpError] = useState("");
   const [otpLoading, setOtpLoading] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState<"idle" | "generating" | "processing" | "success">("idle");
+  const [qrUrl, setQrUrl] = useState<string>("");
 
   useEffect(() => {
     fetchData();
@@ -108,14 +111,50 @@ export default function DeliveryDashboard() {
     }
   };
 
-  const simulatePayment = () => {
-    setIsPaid(true);
-    setTimeout(() => {
+  const handleShowQR = async (order: any) => {
+    setShowQR(order);
+    setPaymentStatus("generating");
+    try {
+      const data = await generateDeliveryPaymentLink({ amount: order.totalAmount, orderId: order.id });
+      if (data.success && data.short_url) {
+        setQrUrl(data.short_url);
+        setPaymentStatus("processing");
+      } else {
+        alert("Failed to generate payment link.");
+        setShowQR(null);
+        setPaymentStatus("idle");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error generating QR");
       setShowQR(null);
-      setIsPaid(false);
-      alert("Payment Received! You can now mark the order as delivered.");
-    }, 2000);
+      setPaymentStatus("idle");
+    }
   };
+
+  useEffect(() => {
+    let pollInterval: any;
+    if (showQR && paymentStatus === "processing") {
+      pollInterval = setInterval(async () => {
+        try {
+          const orderData = await getOrderStatus(showQR.id);
+          if (orderData?.paymentStatus === 'paid') {
+            setPaymentStatus("success");
+            clearInterval(pollInterval);
+            setTimeout(() => {
+              setShowQR(null);
+              setPaymentStatus("idle");
+              setQrUrl("");
+              fetchData();
+            }, 3000);
+          }
+        } catch (err) {
+          console.error("Polling error", err);
+        }
+      }, 3000);
+    }
+    return () => clearInterval(pollInterval);
+  }, [showQR, paymentStatus]);
 
   // Simulate Live Location Tracking
   useEffect(() => {
@@ -310,7 +349,7 @@ export default function DeliveryDashboard() {
                                ) : (
                                  <>
                                    <button 
-                                     onClick={() => setShowQR(order)}
+                                     onClick={() => handleShowQR(order)}
                                      className="w-full py-4 bg-white/10 border border-white/20 text-white font-bold uppercase tracking-widest text-[10px] rounded-lg flex items-center justify-center gap-2 hover:bg-white hover:text-black transition-all"
                                    >
                                      <QrCode size={16} /> Pay by User
@@ -460,7 +499,11 @@ export default function DeliveryDashboard() {
               className="bg-[var(--surface-dark)] border border-[var(--gold-primary)]/30 p-8 rounded-2xl w-full max-w-sm relative overflow-hidden"
             >
                <button 
-                 onClick={() => setShowQR(null)}
+                 onClick={() => {
+                   setShowQR(null);
+                   setPaymentStatus("idle");
+                   setQrUrl("");
+                 }}
                  className="absolute top-4 right-4 text-gray-500 hover:text-white"
                >
                  <X size={24} />
@@ -474,12 +517,39 @@ export default function DeliveryDashboard() {
 
                   {/* QR Code Simulation */}
                   <div className="bg-white p-4 rounded-xl inline-block relative group">
-                     <div className="w-48 h-48 bg-white flex items-center justify-center overflow-hidden">
-                        <img 
-                          src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi://pay?pa=restaurant@upi&pn=TheDivine&am=${showQR.totalAmount}`} 
-                          alt="Payment QR" 
-                          className="w-full h-full"
-                        />
+                     <div className="w-48 h-48 bg-white flex items-center justify-center overflow-hidden relative">
+                        {paymentStatus === "success" && (
+                          <motion.div 
+                            initial={{ scale: 0, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            className="absolute inset-0 z-20 bg-green-500/90 flex flex-col items-center justify-center backdrop-blur-sm"
+                          >
+                            <motion.div 
+                              initial={{ scale: 0 }}
+                              animate={{ scale: 1.2 }}
+                              transition={{ type: "spring", bounce: 0.5, delay: 0.2 }}
+                              className="w-16 h-16 bg-white rounded-full flex items-center justify-center mb-2 shadow-xl"
+                            >
+                              <CheckCircle size={40} className="text-green-500" />
+                            </motion.div>
+                            <span className="text-white font-bold tracking-widest text-[10px] uppercase">Payment Received</span>
+                          </motion.div>
+                        )}
+
+                        {paymentStatus === "generating" ? (
+                          <div className="flex flex-col items-center justify-center text-gray-500 gap-2">
+                             <div className="w-6 h-6 border-2 border-[var(--gold-primary)] border-t-transparent rounded-full animate-spin" />
+                             <span className="text-[8px] uppercase tracking-widest">Generating Secure QR...</span>
+                          </div>
+                        ) : (
+                          qrUrl && (
+                            <img 
+                              src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrUrl)}`} 
+                              alt="Payment QR" 
+                              className={clsx("w-full h-full transition-all duration-500", paymentStatus === "success" && "blur-sm scale-95 opacity-50")}
+                            />
+                          )
+                        )}
                      </div>
                      <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                         <QrCode size={40} className="text-[var(--gold-primary)] mb-2" />
@@ -489,23 +559,23 @@ export default function DeliveryDashboard() {
 
                   <div className="space-y-4">
                      <p className="text-gray-400 text-[10px] uppercase tracking-widest leading-relaxed">
-                        User can scan this QR code using any UPI app (Google Pay, PhonePe, Paytm) to pay the restaurant.
+                        User can scan this QR code using any UPI app (Google Pay, PhonePe, etc.) to pay the restaurant.
                      </p>
                      
                      <div className="h-[1px] bg-[var(--surface-border)] w-full" />
 
-                     {isPaid ? (
-                        <div className="py-4 bg-green-500/10 border border-green-500/20 rounded-lg flex items-center justify-center gap-2">
-                           <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                           <span className="text-green-500 text-[10px] uppercase font-bold tracking-widest">Processing Payment...</span>
+                     {paymentStatus === "processing" && (
+                        <div className="py-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg flex items-center justify-center gap-2">
+                           <div className="w-4 h-4 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin" />
+                           <span className="text-yellow-500 text-[10px] uppercase font-bold tracking-widest">Awaiting Payment...</span>
                         </div>
-                     ) : (
-                        <button 
-                          onClick={simulatePayment}
-                          className="w-full py-4 bg-[var(--gold-primary)] text-black font-bold uppercase tracking-widest text-[10px] rounded-lg hover:bg-white transition-all"
-                        >
-                          Simulate User Success
-                        </button>
+                     )}
+                     
+                     {paymentStatus === "success" && (
+                        <div className="py-4 bg-green-500/10 border border-green-500/20 rounded-lg flex items-center justify-center gap-2">
+                           <CheckCircle size={16} className="text-green-500" />
+                           <span className="text-green-500 text-[10px] uppercase font-bold tracking-widest">Transaction Successful</span>
+                        </div>
                      )}
                   </div>
 

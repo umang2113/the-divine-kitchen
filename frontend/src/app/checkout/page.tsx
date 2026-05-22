@@ -6,13 +6,13 @@ import Navbar from "@/components/layout/Navbar";
 import { useCart } from "@/context/CartContext";
 import { useRouter } from "next/navigation";
 import { MapPin, Navigation } from "lucide-react";
-import { placeOrder, initiatePaytmTransaction } from "@/lib/api";
+import { placeOrder, createRazorpayOrder, verifyRazorpayPayment } from "@/lib/api";
 
 export default function CheckoutPage() {
   const { cart, cartTotal, clearCart } = useCart();
   const [loading, setLoading] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<"COD" | "Paytm">("COD");
+  const [paymentMethod, setPaymentMethod] = useState<"COD" | "Razorpay">("COD");
   const router = useRouter();
 
   const [formData, setFormData] = useState({
@@ -36,14 +36,14 @@ export default function CheckoutPage() {
     }
   }, []);
 
-  const loadPaytmScript = (mid: string, paytmHost: string): Promise<boolean> => {
+  const loadRazorpayScript = (): Promise<boolean> => {
     return new Promise((resolve) => {
-      if ((window as any).Paytm && (window as any).Paytm.CheckoutJS) {
+      if ((window as any).Razorpay) {
         resolve(true);
         return;
       }
       const script = document.createElement("script");
-      script.src = `https://${paytmHost}/merchantpgpui/checkoutjs/merchants/${mid}.js`;
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
       script.onload = () => resolve(true);
       script.onerror = () => resolve(false);
       document.body.appendChild(script);
@@ -105,7 +105,7 @@ export default function CheckoutPage() {
         })),
         totalAmount: cartTotal,
         shippingDetails: formData,
-        paymentMethod: paymentMethod === "COD" ? "Cash on Delivery" : "Paytm Online"
+        paymentMethod: paymentMethod === "COD" ? "Cash on Delivery" : "Razorpay Online"
       };
 
       const result = await placeOrder(orderData);
@@ -119,8 +119,8 @@ export default function CheckoutPage() {
         clearCart();
         router.push("/my-orders");
       } else {
-        // Paytm online payment flow
-        const initData = await initiatePaytmTransaction({
+        // Razorpay online payment flow
+        const initData = await createRazorpayOrder({
           amount: cartTotal,
           orderId: result.id,
           email: formData.email,
@@ -128,38 +128,77 @@ export default function CheckoutPage() {
           name: formData.name
         });
 
-        if (initData.success && initData.txnToken) {
-          const scriptLoaded = await loadPaytmScript(initData.mid, initData.paytmHost);
-          if (!scriptLoaded) {
-            throw new Error("Failed to load Paytm checkout SDK script.");
+        if (initData.success && initData.razorpayOrderId) {
+          // If the backend returns the dummy key, bypass the actual Razorpay SDK and directly verify
+          if (initData.keyId === 'YOUR_KEY_ID_HERE' || initData.keyId.includes('dummy')) {
+            const verificationResult = await verifyRazorpayPayment({
+              razorpay_order_id: initData.razorpayOrderId,
+              razorpay_payment_id: `mock_payment_${Date.now()}`,
+              razorpay_signature: 'mock_signature',
+              orderId: result.id
+            });
+
+            if (verificationResult.success) {
+              clearCart();
+              router.push(`/my-orders?payment=success&orderId=${result.id}`);
+            } else {
+              router.push(`/checkout?payment=failed&msg=Payment verification failed.`);
+            }
+            return;
           }
 
-          const config = {
-            root: "",
-            flow: "DEFAULT",
-            data: {
-              orderId: result.id,
-              token: initData.txnToken,
-              tokenType: "TXN_TOKEN",
-              amount: initData.amount
-            },
-            handler: {
-              notifyMerchant: function(eventName: string, data: any) {
-                console.log("Paytm event:", eventName, data);
+          const scriptLoaded = await loadRazorpayScript();
+          if (!scriptLoaded) {
+            throw new Error("Failed to load Razorpay checkout SDK script.");
+          }
+
+          const options = {
+            key: initData.keyId,
+            amount: initData.amount,
+            currency: "INR",
+            name: "THE DIVINE",
+            description: "Restaurant Order Payment",
+            order_id: initData.razorpayOrderId,
+            handler: async function (response: any) {
+              try {
+                // Verify payment on backend
+                const verificationResult = await verifyRazorpayPayment({
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature,
+                  orderId: result.id
+                });
+
+                if (verificationResult.success) {
+                  clearCart();
+                  router.push(`/my-orders?payment=success&orderId=${result.id}`);
+                } else {
+                  router.push(`/checkout?payment=failed&msg=Payment verification failed.`);
+                }
+              } catch (err: any) {
+                console.error("Verification error", err);
+                router.push(`/checkout?payment=failed&msg=Verification error occurred.`);
               }
+            },
+            prefill: {
+              name: formData.name,
+              email: formData.email,
+              contact: formData.phone
+            },
+            theme: {
+              color: "#00baf2"
             }
           };
 
-          if ((window as any).Paytm && (window as any).Paytm.CheckoutJS) {
-            (window as any).Paytm.CheckoutJS.init(config).then(() => {
-              (window as any).Paytm.CheckoutJS.invoke();
-            }).catch((err: any) => {
-              console.error("Paytm invocation error:", err);
-              alert("Could not load Paytm checkout interface. Please try again.");
-            });
-          }
+          const paymentObject = new (window as any).Razorpay(options);
+          paymentObject.on("payment.failed", function (response: any) {
+            alert(`Payment Failed: ${response.error.description}`);
+            router.push(`/checkout?payment=failed&msg=${encodeURIComponent(response.error.description)}`);
+          });
+          paymentObject.open();
+
         } else {
-          throw new Error("Failed to initiate Paytm payment session.");
+          throw new Error("Failed to initiate Razorpay payment session.");
         }
       }
     } catch (error: any) {
@@ -276,11 +315,11 @@ export default function CheckoutPage() {
                   <input 
                     type="radio" 
                     name="payment" 
-                    checked={paymentMethod === "Paytm"}
-                    onChange={() => setPaymentMethod("Paytm")}
+                    checked={paymentMethod === "Razorpay"}
+                    onChange={() => setPaymentMethod("Razorpay")}
                     className="accent-[var(--gold-primary)]" 
                   />
-                  <span className="text-gray-300 group-hover:text-white">Pay Online via Paytm</span>
+                  <span className="text-gray-300 group-hover:text-white">Pay Online via Razorpay</span>
                 </label>
               </div>
             </div>
@@ -308,7 +347,7 @@ export default function CheckoutPage() {
               {cart.map(item => (
                 <div key={item.id} className="flex justify-between text-sm">
                   <span className="text-gray-400 font-light">{item.name} x {item.quantity}</span>
-                  <span className="text-white">${(item.price * item.quantity).toFixed(2)}</span>
+                  <span className="text-white">₹{(item.price * item.quantity).toFixed(2)}</span>
                 </div>
               ))}
             </div>
@@ -316,7 +355,7 @@ export default function CheckoutPage() {
             <div className="space-y-3 pt-6 border-t border-[var(--surface-border)]">
               <div className="flex justify-between text-xs text-gray-500 uppercase tracking-widest">
                 <span>Subtotal</span>
-                <span>${cartTotal.toFixed(2)}</span>
+                <span>₹{cartTotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-xs text-gray-500 uppercase tracking-widest">
                 <span>Delivery</span>
@@ -324,7 +363,7 @@ export default function CheckoutPage() {
               </div>
               <div className="flex justify-between items-center pt-4">
                 <span className="text-white font-serif uppercase tracking-widest">Total</span>
-                <span className="text-3xl font-serif text-gradient-gold">${cartTotal.toFixed(2)}</span>
+                <span className="text-3xl font-serif text-gradient-gold">₹{cartTotal.toFixed(2)}</span>
               </div>
             </div>
           </div>

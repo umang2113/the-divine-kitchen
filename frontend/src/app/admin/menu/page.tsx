@@ -94,7 +94,7 @@ export default function AdminMenu() {
             <div className="flex-1 flex flex-col justify-between py-1">
               <div>
                 <h4 className="text-white text-xs uppercase font-bold tracking-widest">{item.name}</h4>
-                <p className="text-[var(--gold-primary)] font-serif text-lg mt-1">${item.price}</p>
+                <p className="text-[var(--gold-primary)] font-serif text-lg mt-1">₹{item.price}</p>
                 <span className="text-[8px] uppercase tracking-widest text-gray-500 bg-white/5 px-2 py-0.5">{item.category}</span>
               </div>
               <div className="flex gap-4">
@@ -120,7 +120,7 @@ export default function AdminMenu() {
                 </div>
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Price ($)</label>
+                    <label className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Price (₹)</label>
                     <input 
                       type="number" 
                       step="0.01" 

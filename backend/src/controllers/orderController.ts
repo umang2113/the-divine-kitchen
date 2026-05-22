@@ -9,7 +9,7 @@ export const createOrder = async (req: Request, res: Response) => {
   try {
     const { items, totalAmount, shippingDetails, paymentMethod } = req.body;
 
-    const isOnlinePay = paymentMethod === 'Paytm Online';
+    const isOnlinePay = paymentMethod === 'Razorpay Online';
 
     const orderData: any = {
       items,

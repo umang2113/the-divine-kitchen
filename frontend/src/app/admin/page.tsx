@@ -40,7 +40,7 @@ export default function AdminOverview() {
   if (loading) return null; // Layout handles main loader
 
   const cards = [
-    { label: "Revenue", value: stats?.totalRevenue || "$0.00", icon: TrendingUp },
+    { label: "Revenue", value: stats?.totalRevenue || "₹0.00", icon: TrendingUp },
     { label: "Orders", value: stats?.totalOrders || "0", icon: ShoppingBag },
     { label: "Reservations", value: stats?.totalReservations || "0", icon: CalendarClock },
     { label: "Customers", value: stats?.totalCustomers || "0", icon: Users },
@@ -76,7 +76,7 @@ export default function AdminOverview() {
                   <p className="text-white text-xs font-bold uppercase tracking-widest">{order.shippingDetails?.name || "Customer"}</p>
                   <p className="text-gray-500 text-[10px] mt-1 uppercase tracking-widest">#{order.id.slice(-6)}</p>
                 </div>
-                <p className="text-[var(--gold-primary)] font-serif text-lg">${order.totalAmount || "0.00"}</p>
+                <p className="text-[var(--gold-primary)] font-serif text-lg">₹{order.totalAmount || "0.00"}</p>
               </div>
             ))}
           </div>

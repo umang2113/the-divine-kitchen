@@ -358,7 +358,7 @@ export const updateSettings = async (settings: any) => {
   }
 };
 
-export const initiatePaytmTransaction = async (paymentData: any) => {
+export const createRazorpayOrder = async (paymentData: any) => {
   const token = localStorage.getItem('token');
   const res = await fetch(`${API_URL}/payment/initiate`, {
     method: 'POST',
@@ -369,6 +369,50 @@ export const initiatePaytmTransaction = async (paymentData: any) => {
     body: JSON.stringify(paymentData),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.message || 'Failed to initiate Paytm transaction');
+  if (!res.ok) throw new Error(data.message || 'Failed to create Razorpay order');
+  return data;
+};
+
+export const verifyRazorpayPayment = async (verificationData: any) => {
+  const token = localStorage.getItem('token');
+  const res = await fetch(`${API_URL}/payment/callback`, {
+    method: 'POST',
+    headers: { 
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}` 
+    },
+    body: JSON.stringify(verificationData),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Payment verification failed');
+  return data;
+};
+
+export const generateDeliveryPaymentLink = async (paymentData: { amount: number, orderId: string }) => {
+  const token = localStorage.getItem('token');
+  const res = await fetch(`${API_URL}/payment/generate-link`, {
+    method: 'POST',
+    headers: { 
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}` 
+    },
+    body: JSON.stringify(paymentData),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Failed to generate payment link');
+  return data;
+};
+
+export const getOrderStatus = async (orderId: string) => {
+  const token = localStorage.getItem('token');
+  const res = await fetch(`${API_URL}/orders/${orderId}`, {
+    method: 'GET',
+    headers: { 
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}` 
+    }
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Failed to get order status');
   return data;
 };

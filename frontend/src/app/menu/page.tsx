@@ -148,7 +148,7 @@ export default function MenuPage() {
                       {item.name}
                     </h3>
                     <span className="text-[var(--gold-primary)] font-serif text-xl ml-4">
-                      ${item.price}
+                      ₹{item.price}
                     </span>
                   </div>
                   <p className="text-gray-400 font-light text-sm mb-6 min-h-[40px]">

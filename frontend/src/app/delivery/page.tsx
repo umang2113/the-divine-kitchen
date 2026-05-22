@@ -21,6 +21,7 @@ import {
 import { 
   getAvailableOrders, 
   getMyDeliveryOrders, 
+  updateDeliveryStatus,
   getDeliveryStats,
   updateLocation,
   generateDeliveryPaymentLink,

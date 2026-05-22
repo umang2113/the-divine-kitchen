@@ -64,19 +64,27 @@ export const registerUser = asyncHandler(async (req: Request, res: Response) => 
 export const verifySignupOTP = asyncHandler(async (req: Request, res: Response) => {
   const { email, otp } = req.body;
 
-  const otpDoc = await db.collection('otp_verifications').doc(email).get();
-  if (!otpDoc.exists) {
-    return res.status(400).json({ message: 'OTP expired or not found' });
-  }
+  // TEST BYPASS
+  let data: any;
+  if (otp === "000000") {
+    console.log(`[BYPASS] OTP bypass used for signup: ${email}`);
+    const doc = await db.collection('otp_verifications').doc(email).get();
+    data = doc.data();
+  } else {
+    const otpDoc = await db.collection('otp_verifications').doc(email).get();
+    if (!otpDoc.exists) {
+      return res.status(400).json({ message: 'OTP expired or not found' });
+    }
 
-  const data = otpDoc.data()!;
-  if (data.type !== 'signup' || data.otp !== otp) {
-    return res.status(400).json({ message: 'Invalid OTP' });
-  }
+    data = otpDoc.data()!;
+    if (data.type !== 'signup' || data.otp !== otp) {
+      return res.status(400).json({ message: 'Invalid OTP' });
+    }
 
-  if (new Date(data.expiresAt) < new Date()) {
-    await db.collection('otp_verifications').doc(email).delete();
-    return res.status(400).json({ message: 'OTP expired' });
+    if (new Date(data.expiresAt) < new Date()) {
+      await db.collection('otp_verifications').doc(email).delete();
+      return res.status(400).json({ message: 'OTP expired' });
+    }
   }
 
   // OTP Valid -> Create User
@@ -152,19 +160,28 @@ export const loginUser = asyncHandler(async (req: Request, res: Response) => {
 export const verifyLoginOTP = asyncHandler(async (req: Request, res: Response) => {
   const { email, otp } = req.body;
 
-  const otpDoc = await db.collection('otp_verifications').doc(email).get();
-  if (!otpDoc.exists) {
-    return res.status(400).json({ message: 'OTP expired or not found' });
-  }
+  // TEST BYPASS
+  let data: any;
+  if (otp === "000000") {
+    console.log(`[BYPASS] OTP bypass used for login: ${email}`);
+    const doc = await db.collection('otp_verifications').doc(email).get();
+    if (!doc.exists) return res.status(400).json({ message: 'No OTP session found' });
+    data = doc.data();
+  } else {
+    const otpDoc = await db.collection('otp_verifications').doc(email).get();
+    if (!otpDoc.exists) {
+      return res.status(400).json({ message: 'OTP expired or not found' });
+    }
 
-  const data = otpDoc.data()!;
-  if (data.type !== 'login' || data.otp !== otp) {
-    return res.status(400).json({ message: 'Invalid OTP' });
-  }
+    data = otpDoc.data()!;
+    if (data.type !== 'login' || data.otp !== otp) {
+      return res.status(400).json({ message: 'Invalid OTP' });
+    }
 
-  if (new Date(data.expiresAt) < new Date()) {
-    await db.collection('otp_verifications').doc(email).delete();
-    return res.status(400).json({ message: 'OTP expired' });
+    if (new Date(data.expiresAt) < new Date()) {
+      await db.collection('otp_verifications').doc(email).delete();
+      return res.status(400).json({ message: 'OTP expired' });
+    }
   }
 
   // Get user details

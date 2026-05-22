@@ -10,7 +10,8 @@ export const sendOTP = async (email: string, phone: string, otp: string) => {
   // 1. Send Real Email
   try {
     if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-      await transporter.sendMail({
+      // Don't await this, let it run in the background so it doesn't block the API
+      transporter.sendMail({
         from: `"THE DIVINE" <${process.env.EMAIL_USER}>`,
         to: email,
         subject: 'THE DIVINE - Verification Code',
@@ -25,8 +26,11 @@ export const sendOTP = async (email: string, phone: string, otp: string) => {
             <p style="color: #888; font-size: 12px;">This code will expire in 10 minutes.</p>
           </div>
         `,
+      }).then(() => {
+        console.log(`[REAL EMAIL] Sent successfully to ${email}`);
+      }).catch((err) => {
+        console.error(`[EMAIL ERROR] Failed to send to ${email} (Check your App Password):`, err);
       });
-      console.log(`[REAL EMAIL] Sent successfully to ${email}`);
     } else {
       console.log(`[EMAIL SIMULATION] To: ${email} | OTP: ${otp} (Set EMAIL_USER & EMAIL_PASS in .env for real emails)`);
     }

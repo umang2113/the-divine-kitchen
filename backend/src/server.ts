@@ -37,11 +37,19 @@ app.use('/api/', limiter); // Apply rate limiting to all API routes
 
 // Middlewares
 app.use(cors({
-  origin: [
-    'http://localhost:3000',
-    'http://127.0.0.1:3000',
-    process.env.CLIENT_URL || ''
-  ].filter(Boolean),
+  origin: function (origin, callback) {
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'http://127.0.0.1:3000',
+      process.env.CLIENT_URL || ''
+    ];
+    // Allow any origin from vercel for preview deployments
+    if (!origin || allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']

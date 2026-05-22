@@ -28,10 +28,6 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <head>
-        <Script 
-          src="https://www.google.com/recaptcha/enterprise.js?render=6LcywOosAAAAADkVVsf9vSvXHVAIcELib2rrBWJK"
-          strategy="beforeInteractive"
-        />
       </head>
       <body className={`${playfair.variable} ${inter.variable} min-h-screen bg-background text-foreground antialiased`}>
         <CartProvider>

@@ -1,15 +1,8 @@
 const getApiUrl = () => {
-  if (typeof window !== 'undefined') {
-    const hostname = window.location.hostname;
-    // If accessing via IP (mobile), use that IP for backend too
-    if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
-      return `http://${hostname}:5000/api`;
-    }
-  }
   return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 };
 
-const API_URL = getApiUrl();
+export const API_URL = getApiUrl();
 
 // Menu
 export const getMenuItems = async () => {

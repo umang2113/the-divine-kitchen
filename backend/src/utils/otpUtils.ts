@@ -29,7 +29,8 @@ export const sendOTP = async (email: string, phone: string, otp: string) => {
       }).then(() => {
         console.log(`[REAL EMAIL] Sent successfully to ${email}`);
       }).catch((err) => {
-        console.error(`[EMAIL ERROR] Failed to send to ${email} (Check your App Password):`, err);
+        console.error(`[EMAIL ERROR] Failed to send to ${email}. SMTP blocked or wrong password.`);
+        console.log(`[BACKUP OTP] Your OTP is: ${otp}`); // Added so user can see it in Render logs
       });
     } else {
       console.log(`[EMAIL SIMULATION] To: ${email} | OTP: ${otp} (Set EMAIL_USER & EMAIL_PASS in .env for real emails)`);

@@ -10,7 +10,9 @@ import {
   Settings,
   LogOut,
   ArrowLeft,
-  Receipt
+  Receipt,
+  Menu,
+  X
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -20,6 +22,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -31,6 +34,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
     setLoading(false);
   }, [router]);
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [pathname]);
 
   if (loading) return (
     <div className="min-h-screen bg-black flex items-center justify-center">
@@ -56,13 +64,30 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <div className="min-h-screen bg-background flex">
+      {/* Mobile Menu Backdrop */}
+      {isMobileMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-black/60 z-40 lg:hidden"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="fixed left-0 top-0 h-full w-64 bg-[var(--surface-dark)] border-r border-[var(--surface-border)] z-50 hidden lg:flex flex-col">
-        <div className="p-8">
+      <aside className={clsx(
+        "fixed left-0 top-0 h-full w-64 bg-[var(--surface-dark)] border-r border-[var(--surface-border)] z-50 flex flex-col transition-transform duration-300",
+        isMobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+      )}>
+        <div className="p-8 flex items-center justify-between">
           <h2 className="text-2xl font-serif text-gradient-gold uppercase tracking-widest">Admin</h2>
+          <button 
+            className="lg:hidden text-gray-400 hover:text-white"
+            onClick={() => setIsMobileMenuOpen(false)}
+          >
+            <X size={24} />
+          </button>
         </div>
         
-        <nav className="flex-1 px-4 space-y-2">
+        <nav className="flex-1 px-4 space-y-2 overflow-y-auto overflow-x-hidden">
           {navItems.map(item => {
             const Icon = item.icon;
             const isActive = pathname === item.href;
@@ -84,7 +109,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           })}
         </nav>
         
-        <div className="p-4 border-t border-[var(--surface-border)] space-y-2">
+        <div className="p-4 border-t border-[var(--surface-border)] space-y-2 bg-[var(--surface-dark)]">
            <Link href="/" className="flex items-center gap-4 px-4 py-3 text-[10px] uppercase tracking-widest font-bold text-gray-500 hover:text-white transition-all">
              <ArrowLeft size={18} /> Back to Store
            </Link>
@@ -95,24 +120,34 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </aside>
 
       {/* Main Content Area */}
-      <div className="lg:ml-64 flex-1 min-h-screen p-6 md:p-12 overflow-x-hidden">
-        <header className="flex justify-between items-center mb-12">
-          <div>
-            <h1 className="text-3xl font-serif text-white uppercase tracking-widest">
-              {navItems.find(i => i.href === pathname)?.name || "Admin"}
-            </h1>
-            <p className="text-gray-500 text-[10px] mt-1 uppercase tracking-widest">The Divine Management System</p>
-          </div>
+      <div className="lg:ml-64 flex-1 min-h-screen p-4 sm:p-6 md:p-12 overflow-x-hidden flex flex-col">
+        <header className="flex justify-between items-center mb-8 md:mb-12 gap-4">
           <div className="flex items-center gap-4">
-            <div className="text-right hidden md:block">
-              <p className="text-white text-xs font-bold uppercase tracking-widest">Administrator</p>
+            <button 
+              className="lg:hidden p-2 -ml-2 text-white hover:bg-white/10 rounded-md"
+              onClick={() => setIsMobileMenuOpen(true)}
+            >
+              <Menu size={24} />
+            </button>
+            <div>
+              <h1 className="text-xl sm:text-3xl font-serif text-white uppercase tracking-widest leading-tight">
+                {navItems.find(i => i.href === pathname)?.name || "Admin"}
+              </h1>
+              <p className="text-gray-500 text-[9px] sm:text-[10px] mt-1 uppercase tracking-widest">The Divine Management System</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-4 shrink-0">
+            <div className="text-right hidden sm:block">
+              <p className="text-white text-[10px] sm:text-xs font-bold uppercase tracking-widest">Administrator</p>
               <p className="text-gray-500 text-[10px]">admin@thedivine.com</p>
             </div>
-            <div className="w-12 h-12 bg-gradient-to-br from-[var(--gold-primary)] to-[var(--gold-dark)] rounded-full flex items-center justify-center text-black font-bold shadow-lg">A</div>
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[var(--gold-primary)] to-[var(--gold-dark)] rounded-full flex items-center justify-center text-black font-bold shadow-lg">A</div>
           </div>
         </header>
 
-        {children}
+        <div className="flex-1 w-full max-w-[100vw] lg:max-w-none overflow-x-hidden">
+          {children}
+        </div>
       </div>
     </div>
   );

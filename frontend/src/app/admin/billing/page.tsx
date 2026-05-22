@@ -279,7 +279,7 @@ export default function AdminBilling() {
                         {selectedRes && <p className="text-gray-600">Table: {selectedRes.tableId}</p>}
                      </div>
 
-                     <table className="w-full text-[10px]">
+                     <div className="w-full overflow-x-auto"><table className="w-full text-[10px] min-w-[300px]">
                         <thead className="border-b border-gray-100">
                            <tr className="text-left font-bold uppercase tracking-widest">
                               <th className="py-2">Item</th>
@@ -296,7 +296,7 @@ export default function AdminBilling() {
                               </tr>
                            ))}
                         </tbody>
-                     </table>
+                     </table></div>
 
                      <div className="space-y-2 pt-4 border-t-2 border-black border-dotted">
                         <div className="flex justify-between text-[10px] uppercase">

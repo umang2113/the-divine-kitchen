@@ -41,7 +41,9 @@ app.use(cors({
     const allowedOrigins = [
       'http://localhost:3000',
       'http://127.0.0.1:3000',
-      process.env.CLIENT_URL || ''
+      process.env.CLIENT_URL || '',
+      'https://thedivinekitchen.com',
+      'https://www.thedivinekitchen.com'
     ];
     // Allow any origin from vercel for preview deployments
     if (!origin || allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {

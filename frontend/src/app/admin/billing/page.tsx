@@ -75,6 +75,17 @@ export default function AdminBilling() {
     setCart(cart.filter(item => item.id !== id));
   };
 
+  const handlePrint = () => {
+    window.print();
+    // After 5 seconds, prepare for the next customer
+    setTimeout(() => {
+      setIsInvoiceReady(false);
+      setCart([]);
+      setSelectedRes(null);
+      setPaymentMode("Cash");
+    }, 5000);
+  };
+
   const subtotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
   const deposit = selectedRes?.amount || 0;
   const total = Math.max(0, subtotal - deposit);
@@ -368,7 +379,7 @@ export default function AdminBilling() {
                   </div>
 
                   <button 
-                    onClick={() => window.print()}
+                    onClick={handlePrint}
                     className="w-full mt-10 py-4 bg-black text-white text-[10px] font-bold uppercase tracking-widest hover:bg-gray-800 transition-all flex items-center justify-center gap-2 print:hidden"
                   >
                      <Printer size={16}/> Print Invoice

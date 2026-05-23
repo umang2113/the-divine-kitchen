@@ -62,40 +62,61 @@ export default function CheckoutPage() {
       return;
     }
 
+  const fetchAddressFromCoords = async (latitude: number, longitude: number) => {
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+      const data = await res.json();
+      
+      if (data && data.display_name) {
+        setFormData(prev => ({
+          ...prev,
+          address: data.display_name,
+          city: data.address?.city || data.address?.town || data.address?.village || data.address?.county || data.address?.state_district || "",
+          zipCode: data.address?.postcode || "",
+          latitude,
+          longitude
+        }));
+      } else {
+        setFormData(prev => ({ ...prev, address: `Lat: ${latitude}, Lng: ${longitude}`, latitude, longitude }));
+      }
+    } catch (error) {
+      console.error("Geocoding error:", error);
+      setFormData(prev => ({ ...prev, address: `Lat: ${latitude}, Lng: ${longitude}`, latitude, longitude }));
+    } finally {
+      setIsLocating(false);
+    }
+  };
+
+  const handleGetLocation = () => {
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser");
+      return;
+    }
+
     setIsLocating(true);
+    
+    // Attempt 1: High Accuracy (GPS)
     navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords;
-        
-        try {
-          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
-          const data = await res.json();
-          
-          if (data && data.display_name) {
-            setFormData(prev => ({
-              ...prev,
-              address: data.display_name,
-              city: data.address?.city || data.address?.town || data.address?.village || data.address?.county || data.address?.state_district || "",
-              zipCode: data.address?.postcode || "",
-              latitude,
-              longitude
-            }));
-          } else {
-            setFormData(prev => ({ ...prev, address: `Lat: ${latitude}, Lng: ${longitude}`, latitude, longitude }));
-          }
-        } catch (error) {
-          console.error("Geocoding error:", error);
-          setFormData(prev => ({ ...prev, address: `Lat: ${latitude}, Lng: ${longitude}`, latitude, longitude }));
-        } finally {
-          setIsLocating(false);
-        }
+      (position) => {
+        fetchAddressFromCoords(position.coords.latitude, position.coords.longitude);
       }, 
       (error) => {
-        console.error("Location error:", error);
-        alert("Unable to get exact location. Please ensure GPS is enabled and permissions are granted.");
-        setIsLocating(false);
+        console.warn("High accuracy failed, falling back to standard accuracy...", error);
+        
+        // Attempt 2: Fallback to standard accuracy (Network/WiFi)
+        navigator.geolocation.getCurrentPosition(
+          (fallbackPosition) => {
+            fetchAddressFromCoords(fallbackPosition.coords.latitude, fallbackPosition.coords.longitude);
+          },
+          (fallbackError) => {
+            console.error("Fallback location error:", fallbackError);
+            alert("Unable to detect location. Please manually enter your address or check if location permissions are allowed for this site.");
+            setIsLocating(false);
+          },
+          { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
+        );
       },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 } // Forces actual GPS hardware
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
   };
 

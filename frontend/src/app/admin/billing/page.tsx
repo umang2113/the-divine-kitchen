@@ -39,7 +39,14 @@ export default function AdminBilling() {
     }
   };
 
-  const addToCart = (item: any) => {
+  const addToCart = (rawItem: any) => {
+    const item = {
+      ...rawItem,
+      id: rawItem.id,
+      name: `${rawItem.catalogue_name || rawItem.name || 'Unknown Item'}${rawItem.variant_name ? ' - ' + rawItem.variant_name : ''}`,
+      price: rawItem.current_price !== undefined ? parseFloat(rawItem.current_price) : parseFloat(rawItem.price || 0)
+    };
+    
     const existing = cart.find(c => c.id === item.id);
     if (existing) {
       setCart(cart.map(c => c.id === item.id ? { ...c, quantity: c.quantity + 1 } : c));
@@ -67,10 +74,12 @@ export default function AdminBilling() {
   const deposit = selectedRes?.amount || 0;
   const total = Math.max(0, subtotal + tax - deposit);
 
-  const filteredMenu = menuItems.filter(item => 
-    item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    item.category.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredMenu = menuItems.filter(item => {
+    const name = item.catalogue_name || item.name || "";
+    const category = item.category_name || item.category || "";
+    return name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+           category.toLowerCase().includes(searchQuery.toLowerCase());
+  });
 
   if (loading) return null;
 
@@ -113,10 +122,10 @@ export default function AdminBilling() {
                 className="bg-[var(--surface-dark)] border border-[var(--surface-border)] p-4 cursor-pointer hover:border-[var(--gold-primary)] transition-all group"
               >
                  <div className="aspect-video bg-black mb-4 overflow-hidden">
-                    <img src={item.image} alt={item.name} className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity" />
+                    <img src={item.image_url || item.imageUrl || item.image || "https://images.unsplash.com/photo-1544025162-d76694265947?q=80&w=2069"} alt={item.catalogue_name || item.name || 'Item'} className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity" />
                  </div>
-                 <h4 className="text-white text-xs font-serif uppercase tracking-widest mb-1">{item.name}</h4>
-                 <p className="text-[var(--gold-primary)] text-xs font-bold">₹{item.price}</p>
+                 <h4 className="text-white text-xs font-serif uppercase tracking-widest mb-1">{item.catalogue_name || item.name || 'Unknown Item'} {item.variant_name && <span className="text-[9px] text-gray-400 normal-case ml-1">({item.variant_name})</span>}</h4>
+                 <p className="text-[var(--gold-primary)] text-xs font-bold">₹{item.current_price !== undefined ? item.current_price : (item.price || 0)}</p>
               </motion.div>
            ))}
         </div>

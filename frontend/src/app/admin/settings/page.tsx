@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Save, Loader2, IndianRupee } from "lucide-react";
+import { Save, Loader2, IndianRupee, QrCode, Download } from "lucide-react";
 import { getSettings, updateSettings } from "@/lib/api";
+import { QRCodeCanvas } from "qrcode.react";
 
 export default function AdminSettings() {
   const [loading, setLoading] = useState(true);
@@ -11,6 +12,20 @@ export default function AdminSettings() {
   const [formData, setFormData] = useState({
     upiId: "",
   });
+  const [appLink, setAppLink] = useState("https://thedivinekitchen.com");
+
+  const downloadQRCode = () => {
+    const canvas = document.getElementById("app-qr-code") as HTMLCanvasElement;
+    if (canvas) {
+      const pngUrl = canvas.toDataURL("image/png");
+      const downloadLink = document.createElement("a");
+      downloadLink.href = pngUrl;
+      downloadLink.download = "TheDivineKitchen-QR.png";
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+    }
+  };
 
   useEffect(() => {
     fetchSettings();
@@ -76,6 +91,53 @@ export default function AdminSettings() {
               />
               <p className="text-gray-500 text-[9px] mt-1">This UPI ID will be used to generate dynamic QR codes on the Billing page.</p>
             </div>
+          </div>
+        </motion.div>
+
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="bg-[var(--surface-dark)] border border-[var(--surface-border)] p-8 rounded-sm"
+        >
+          <div className="flex items-center gap-3 mb-6">
+            <QrCode className="text-[var(--gold-primary)]" size={20} />
+            <h3 className="text-lg font-serif text-white uppercase tracking-widest">App QR Code Generator</h3>
+          </div>
+          
+          <div className="flex flex-col md:flex-row gap-8 items-start">
+            <div className="flex-grow space-y-4 w-full">
+              <label className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">App / Website Link</label>
+              <input 
+                type="text" 
+                value={appLink}
+                onChange={e => setAppLink(e.target.value)}
+                placeholder="https://thedivinekitchen.com"
+                className="w-full bg-black border border-[var(--surface-border)] p-3 text-white text-xs focus:border-[var(--gold-primary)] outline-none transition-colors"
+              />
+              <p className="text-gray-500 text-[9px] mt-1">Enter any link to generate a QR code. Customers can scan it to open your app.</p>
+              
+              <button 
+                type="button"
+                onClick={downloadQRCode}
+                className="mt-4 px-6 py-3 border border-[var(--gold-primary)] text-[var(--gold-primary)] text-[10px] font-bold uppercase tracking-widest hover:bg-[var(--gold-primary)] hover:text-black transition-all duration-500 flex items-center gap-2"
+              >
+                <Download size={14}/> Download QR Code Image
+              </button>
+            </div>
+            
+            {appLink && (
+              <div className="bg-white p-4 rounded-sm flex-shrink-0 flex flex-col items-center">
+                <QRCodeCanvas 
+                  id="app-qr-code"
+                  value={appLink}
+                  size={150}
+                  level="H"
+                  includeMargin={true}
+                />
+                <p className="text-black text-[9px] uppercase tracking-widest mt-2 font-bold text-center">Scan to Visit</p>
+              </div>
+            )}
           </div>
         </motion.div>
 

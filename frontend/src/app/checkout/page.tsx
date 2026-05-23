@@ -21,7 +21,9 @@ export default function CheckoutPage() {
     phone: "",
     address: "",
     city: "",
-    zipCode: ""
+    zipCode: "",
+    latitude: null as number | null,
+    longitude: null as number | null
   });
 
   useEffect(() => {
@@ -61,34 +63,40 @@ export default function CheckoutPage() {
     }
 
     setIsLocating(true);
-    navigator.geolocation.getCurrentPosition(async (position) => {
-      const { latitude, longitude } = position.coords;
-      
-      try {
-        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
-        const data = await res.json();
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
         
-        if (data && data.display_name) {
-          setFormData(prev => ({
-            ...prev,
-            address: data.display_name,
-            city: data.address.city || data.address.town || data.address.village || data.address.county || "",
-            zipCode: data.address.postcode || ""
-          }));
-        } else {
-          setFormData(prev => ({ ...prev, address: `Lat: ${latitude}, Lng: ${longitude}` }));
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+          const data = await res.json();
+          
+          if (data && data.display_name) {
+            setFormData(prev => ({
+              ...prev,
+              address: data.display_name,
+              city: data.address?.city || data.address?.town || data.address?.village || data.address?.county || data.address?.state_district || "",
+              zipCode: data.address?.postcode || "",
+              latitude,
+              longitude
+            }));
+          } else {
+            setFormData(prev => ({ ...prev, address: `Lat: ${latitude}, Lng: ${longitude}`, latitude, longitude }));
+          }
+        } catch (error) {
+          console.error("Geocoding error:", error);
+          setFormData(prev => ({ ...prev, address: `Lat: ${latitude}, Lng: ${longitude}`, latitude, longitude }));
+        } finally {
+          setIsLocating(false);
         }
-      } catch (error) {
-        console.error("Geocoding error:", error);
-        setFormData(prev => ({ ...prev, address: `Lat: ${latitude}, Lng: ${longitude}` }));
-      } finally {
+      }, 
+      (error) => {
+        console.error("Location error:", error);
+        alert("Unable to get exact location. Please ensure GPS is enabled and permissions are granted.");
         setIsLocating(false);
-      }
-    }, (error) => {
-      console.error("Location error:", error);
-      alert("Unable to access location. Please check your browser permissions.");
-      setIsLocating(false);
-    });
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 } // Forces actual GPS hardware
+    );
   };
 
   const handlePlaceOrder = async (e: React.FormEvent) => {

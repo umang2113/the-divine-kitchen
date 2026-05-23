@@ -4,16 +4,63 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, Edit2, Trash2, UtensilsCrossed, UploadCloud, Loader2, Check } from "lucide-react";
 import { getMenuItems, createMenuItem, updateMenuItem, deleteMenuItem, uploadImage } from "@/lib/api";
+import Papa from "papaparse";
 
 export default function AdminMenu() {
   const [menuItems, setMenuItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [isBulkUploading, setIsBulkUploading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [formData, setFormData] = useState({
     category_name: "", subcategory_name: "", catalogue_id: "", catalogue_name: "", variant_id: "", variant_name: "", current_price: 0, description: "", image_url: ""
   });
+
+  const handleBulkUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsBulkUploading(true);
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: async (results) => {
+        try {
+          const rows = results.data as any[];
+          let successCount = 0;
+          for (const row of rows) {
+            if (!row.catalogue_name && !row.category_name) continue; // Skip invalid rows
+            
+            await createMenuItem({
+              category_name: row.category_name || "",
+              subcategory_name: row.subcategory_name || "",
+              catalogue_id: row.catalogue_id || "",
+              catalogue_name: row.catalogue_name || "",
+              variant_id: row.variant_id || "",
+              variant_name: row.variant_name || "",
+              current_price: parseFloat(row.current_price) || 0,
+              description: row.description || "",
+              image_url: row.image_url || ""
+            });
+            successCount++;
+          }
+          alert(`Successfully uploaded ${successCount} menu items!`);
+          fetchMenu();
+        } catch (error) {
+          console.error("Bulk upload error:", error);
+          alert("Error uploading some items. Check console for details.");
+        } finally {
+          setIsBulkUploading(false);
+          e.target.value = '';
+        }
+      },
+      error: (error: any) => {
+        alert("Error parsing CSV file: " + error.message);
+        setIsBulkUploading(false);
+      }
+    });
+  };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -77,12 +124,19 @@ export default function AdminMenu() {
           <h2 className="text-xl font-serif text-white uppercase tracking-widest">Menu Collection</h2>
           <p className="text-gray-500 text-[10px] mt-1 uppercase tracking-widest">{menuItems.length} Total Items</p>
         </div>
-        <button 
-          onClick={() => { setEditingItem(null); setFormData({ category_name: "", subcategory_name: "", catalogue_id: "", catalogue_name: "", variant_id: "", variant_name: "", current_price: 0, description: "", image_url: "" }); setShowModal(true); }}
-          className="px-8 py-3 bg-[var(--gold-primary)] text-black text-[10px] font-bold uppercase tracking-widest hover:bg-white transition-all duration-500 flex items-center gap-2"
-        >
-          <Plus size={14}/> Add New Dish
-        </button>
+        <div className="flex gap-4">
+          <label className={`px-6 py-3 border border-[var(--gold-primary)] text-[var(--gold-primary)] text-[10px] font-bold uppercase tracking-widest hover:bg-[var(--gold-primary)] hover:text-black transition-all duration-500 flex items-center gap-2 cursor-pointer ${isBulkUploading ? 'opacity-50 pointer-events-none' : ''}`}>
+            <input type="file" accept=".csv" className="hidden" onChange={handleBulkUpload} disabled={isBulkUploading} />
+            {isBulkUploading ? <Loader2 size={14} className="animate-spin" /> : <UploadCloud size={14}/>}
+            {isBulkUploading ? 'Uploading...' : 'Bulk Upload CSV'}
+          </label>
+          <button 
+            onClick={() => { setEditingItem(null); setFormData({ category_name: "", subcategory_name: "", catalogue_id: "", catalogue_name: "", variant_id: "", variant_name: "", current_price: 0, description: "", image_url: "" }); setShowModal(true); }}
+            className="px-8 py-3 bg-[var(--gold-primary)] text-black text-[10px] font-bold uppercase tracking-widest hover:bg-white transition-all duration-500 flex items-center gap-2"
+          >
+            <Plus size={14}/> Add New Dish
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 pb-20">

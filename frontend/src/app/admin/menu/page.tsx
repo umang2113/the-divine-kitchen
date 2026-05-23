@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, Edit2, Trash2, UtensilsCrossed, UploadCloud, Loader2, Check } from "lucide-react";
 import { getMenuItems, createMenuItem, updateMenuItem, deleteMenuItem, uploadImage } from "@/lib/api";
-import Papa from "papaparse";
+import * as XLSX from "xlsx";
 
 export default function AdminMenu() {
   const [menuItems, setMenuItems] = useState<any[]>([]);
@@ -18,51 +18,54 @@ export default function AdminMenu() {
     category_name: "", subcategory_name: "", catalogue_id: "", catalogue_name: "", variant_id: "", variant_name: "", current_price: 0, description: "", image_url: ""
   });
 
-  const processCsvFile = (file: File) => {
+  const processExcelOrCsvFile = (file: File) => {
     setIsBulkUploading(true);
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: async (results) => {
-        try {
-          const rows = results.data as any[];
-          let successCount = 0;
-          for (const row of rows) {
-            if (!row.catalogue_name && !row.category_name) continue; 
-            
-            await createMenuItem({
-              category_name: row.category_name || "",
-              subcategory_name: row.subcategory_name || "",
-              catalogue_id: row.catalogue_id || "",
-              catalogue_name: row.catalogue_name || "",
-              variant_id: row.variant_id || "",
-              variant_name: row.variant_name || "",
-              current_price: parseFloat(row.current_price) || 0,
-              description: row.description || "",
-              image_url: row.image_url || ""
-            });
-            successCount++;
-          }
-          alert(`Successfully uploaded ${successCount} menu items!`);
-          fetchMenu();
-        } catch (error) {
-          console.error("Bulk upload error:", error);
-          alert("Error uploading some items. Check console for details.");
-        } finally {
-          setIsBulkUploading(false);
+    
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const data = new Uint8Array(e.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]) as any[];
+        
+        let successCount = 0;
+        for (const row of rows) {
+          if (!row.catalogue_name && !row.category_name) continue; 
+          
+          await createMenuItem({
+            category_name: row.category_name || "",
+            subcategory_name: row.subcategory_name || "",
+            catalogue_id: row.catalogue_id || "",
+            catalogue_name: row.catalogue_name || "",
+            variant_id: row.variant_id || "",
+            variant_name: row.variant_name || "",
+            current_price: parseFloat(row.current_price) || parseFloat(row.price) || 0,
+            description: row.description || "",
+            image_url: row.image_url || row.imageUrl || ""
+          });
+          successCount++;
         }
-      },
-      error: (error: any) => {
-        alert("Error parsing CSV file: " + error.message);
+        alert(`Successfully uploaded ${successCount} menu items!`);
+        fetchMenu();
+      } catch (error: any) {
+        console.error("Bulk upload error:", error);
+        alert("Error parsing file: " + (error.message || "Invalid format"));
+      } finally {
         setIsBulkUploading(false);
       }
-    });
+    };
+    reader.onerror = () => {
+      alert("Error reading file.");
+      setIsBulkUploading(false);
+    };
+    reader.readAsArrayBuffer(file);
   };
 
   const handleBulkUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      processCsvFile(file);
+      processExcelOrCsvFile(file);
       e.target.value = '';
     }
   };
@@ -81,10 +84,10 @@ export default function AdminMenu() {
     e.preventDefault();
     setIsDragging(false);
     const file = e.dataTransfer.files?.[0];
-    if (file && (file.name.endsWith('.csv') || file.type === 'text/csv')) {
-      processCsvFile(file);
+    if (file && (file.name.endsWith('.csv') || file.name.endsWith('.xlsx') || file.name.endsWith('.xls'))) {
+      processExcelOrCsvFile(file);
     } else if (file) {
-      alert("Please upload a valid .csv file.");
+      alert("Please upload a valid .csv, .xls, or .xlsx file.");
     }
   };
 
@@ -157,9 +160,9 @@ export default function AdminMenu() {
             onDrop={onDrop}
             className={`px-6 py-2 border-2 border-dashed ${isDragging ? 'border-[var(--gold-primary)] bg-[var(--gold-primary)]/10 text-[var(--gold-primary)]' : 'border-gray-500/50 text-gray-500 hover:border-[var(--gold-primary)] hover:text-[var(--gold-primary)]'} text-[10px] font-bold uppercase tracking-widest transition-all duration-300 flex flex-col items-center justify-center gap-1 cursor-pointer min-w-[220px] ${isBulkUploading ? 'opacity-50 pointer-events-none' : ''}`}
           >
-            <input type="file" accept=".csv" className="hidden" onChange={handleBulkUpload} disabled={isBulkUploading} />
+            <input type="file" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" className="hidden" onChange={handleBulkUpload} disabled={isBulkUploading} />
             {isBulkUploading ? <Loader2 size={16} className="animate-spin" /> : <UploadCloud size={16}/>}
-            {isBulkUploading ? 'Uploading...' : 'Drag & Drop CSV or Click'}
+            {isBulkUploading ? 'Uploading...' : 'Drag & Drop Excel/CSV'}
           </label>
           <button 
             onClick={() => { setEditingItem(null); setFormData({ category_name: "", subcategory_name: "", catalogue_id: "", catalogue_name: "", variant_id: "", variant_name: "", current_price: 0, description: "", image_url: "" }); setShowModal(true); }}

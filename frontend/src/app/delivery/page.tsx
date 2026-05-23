@@ -278,17 +278,27 @@ export default function DeliveryDashboard() {
               ) : (
                 myOrders.map((order) => (
                   <div key={order.id} className="bg-[var(--surface-dark)] border border-[var(--surface-border)] rounded-xl overflow-hidden">
-                     {/* Map Placeholder */}
-                     <div className="h-40 bg-gray-900 relative">
-                        <div className="absolute inset-0 bg-[url('https://api.maptiler.com/maps/basic-v2/static/-122.41,37.77,12/400x200.png?key=get_your_own_key')] bg-cover opacity-30" />
-                        <div className="absolute inset-0 flex items-center justify-center">
-                           <div className="w-8 h-8 bg-[var(--gold-primary)] rounded-full animate-ping opacity-20" />
-                           <Navigation className="text-[var(--gold-primary)] relative z-10" size={24} />
-                        </div>
-                        <div className="absolute bottom-4 left-4 bg-black/80 px-3 py-1 rounded text-[9px] uppercase tracking-widest border border-white/10">
-                           {Math.floor(Math.random() * 5) + 2} mins away
-                        </div>
-                     </div>
+                     {/* Map Navigation Link */}
+                     {order.shippingDetails?.latitude && order.shippingDetails?.longitude ? (
+                       <a 
+                         href={`https://www.google.com/maps/dir/?api=1&destination=${order.shippingDetails.latitude},${order.shippingDetails.longitude}`}
+                         target="_blank"
+                         rel="noreferrer"
+                         className="h-20 bg-blue-500/10 border-b border-[var(--surface-border)] flex items-center justify-center gap-3 group hover:bg-blue-500/20 transition-all cursor-pointer"
+                       >
+                         <div className="w-10 h-10 bg-blue-500 text-white rounded-full flex items-center justify-center shadow-lg shadow-blue-500/30 group-hover:scale-110 transition-transform">
+                           <Navigation size={20} className="ml-1" />
+                         </div>
+                         <div className="text-left">
+                           <p className="text-blue-500 font-bold uppercase tracking-widest text-[10px]">Start Navigation</p>
+                           <p className="text-gray-400 text-[9px] uppercase tracking-tighter">Navigate to Exact GPS Location</p>
+                         </div>
+                       </a>
+                     ) : (
+                       <div className="h-20 bg-gray-900 border-b border-[var(--surface-border)] flex items-center justify-center">
+                         <p className="text-gray-500 text-[10px] uppercase tracking-widest">No Exact GPS Found</p>
+                       </div>
+                     )}
 
                      <div className="p-6 space-y-4">
                         <div className="flex justify-between items-center">

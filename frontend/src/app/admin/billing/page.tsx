@@ -276,6 +276,7 @@ export default function AdminBilling() {
             </div>
          </div>
       </div>
+      </div>
 
       {/* Invoice Modal */}
       <AnimatePresence>

@@ -22,21 +22,8 @@ export const sendOTP = async (email: string, phone: string, otp: string) => {
   `;
 
   try {
-    if (process.env.RESEND_API_KEY) {
-      // Send via Resend (Bypasses Render SMTP Block)
-      resend.emails.send({
-        from: 'THE DIVINE <onboarding@resend.dev>', // Resend free tier requires this sender
-        to: email,
-        subject: 'THE DIVINE - Verification Code',
-        html: htmlContent,
-      }).then(() => {
-        console.log(`[RESEND EMAIL] Sent successfully to ${email}`);
-      }).catch((err) => {
-        console.error(`[RESEND ERROR] Failed to send to ${email}:`, err);
-        console.log(`[BACKUP OTP] Your OTP is: ${otp}`);
-      });
-    } else if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-      // Fallback to Nodemailer
+    if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+      // Primary: Use Nodemailer (Gmail) to ensure it sends to ALL email addresses
       transporter.sendMail({
         from: `"THE DIVINE" <${process.env.EMAIL_USER}>`,
         to: email,
@@ -49,8 +36,21 @@ export const sendOTP = async (email: string, phone: string, otp: string) => {
         console.error(`[EMAIL ERROR] Failed to send to ${email}. SMTP blocked or wrong password.`);
         console.log(`[BACKUP OTP] Your OTP is: ${otp}`); 
       });
+    } else if (process.env.RESEND_API_KEY) {
+      // Fallback: Resend (Note: Free tier only sends to the verified owner's email)
+      resend.emails.send({
+        from: 'THE DIVINE <onboarding@resend.dev>',
+        to: email,
+        subject: 'THE DIVINE - Verification Code',
+        html: htmlContent,
+      }).then(() => {
+        console.log(`[RESEND EMAIL] Sent successfully to ${email}`);
+      }).catch((err) => {
+        console.error(`[RESEND ERROR] Failed to send to ${email}:`, err);
+        console.log(`[BACKUP OTP] Your OTP is: ${otp}`);
+      });
     } else {
-      console.log(`[EMAIL SIMULATION] To: ${email} | OTP: ${otp} (Set RESEND_API_KEY in .env for real emails)`);
+      console.log(`[EMAIL SIMULATION] To: ${email} | OTP: ${otp} (Configure EMAIL_USER in .env)`);
     }
   } catch (error) {
     console.error(`[CRITICAL EMAIL ERROR]:`, error);

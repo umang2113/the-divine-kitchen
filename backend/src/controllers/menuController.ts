@@ -104,3 +104,25 @@ export const deleteMenuItem = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+
+// @desc    Toggle menu item availability
+// @route   PATCH /api/menu/:id/availability
+// @access  Private/Staff/Admin
+export const toggleMenuAvailability = async (req: Request, res: Response) => {
+  try {
+    const { isAvailable } = req.body;
+    if (isAvailable === undefined) {
+      return res.status(400).json({ message: 'isAvailable is required' });
+    }
+    
+    await db.collection('menu').doc(req.params.id).update({ 
+      isAvailable,
+      updatedAt: new Date().toISOString()
+    });
+    
+    res.json({ message: 'Menu availability updated successfully' });
+  } catch (error) {
+    console.error("Toggle Menu Availability Error:", error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};

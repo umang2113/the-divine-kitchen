@@ -125,6 +125,8 @@ export default function LoginPage() {
 
       if (data.role === "admin") {
         router.push("/admin");
+      } else if (data.role === "staff") {
+        router.push("/staff");
       } else if (data.role === "delivery_boy") {
         router.push("/delivery");
       } else {

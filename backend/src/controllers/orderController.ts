@@ -7,7 +7,7 @@ import { sendOrderConfirmation, sendOutForDeliveryEmail, sendOrderDeliveredEmail
 // @access  Public (or Private)
 export const createOrder = async (req: Request, res: Response) => {
   try {
-    const { items, totalAmount, shippingDetails, paymentMethod, source } = req.body;
+    const { items, totalAmount, shippingDetails, paymentMethod, source, orderType, tableNumber } = req.body;
 
     const isOnlinePay = paymentMethod === 'Razorpay Online';
     const isPOS = source === 'pos';
@@ -18,6 +18,8 @@ export const createOrder = async (req: Request, res: Response) => {
       shippingDetails: shippingDetails || {},
       paymentMethod,
       source: isPOS ? 'pos' : 'online',
+      orderType: orderType || 'delivery',
+      tableNumber: tableNumber || null,
       status: isPOS ? 'completed' : (isOnlinePay ? 'pending_payment' : 'preparing'),
       paymentStatus: isPOS ? 'paid' : (isOnlinePay ? 'pending' : 'cod'),
       createdAt: new Date().toISOString()
@@ -130,6 +132,40 @@ export const getOrderById = async (req: Request, res: Response) => {
     res.json({ id: doc.id, ...order });
   } catch (error) {
     console.error("Fetch Order Error:", error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+export const getShiftSummary = async (req: Request, res: Response) => {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const snapshot = await db.collection('orders')
+      .where('createdAt', '>=', today.toISOString())
+      .get();
+      
+    const orders = snapshot.docs.map(doc => doc.data());
+    
+    let cash = 0;
+    let online = 0;
+    let card = 0;
+    let activeOrders = 0;
+
+    orders.forEach((order: any) => {
+      if (order.status !== 'completed' && order.status !== 'delivered') {
+        activeOrders++;
+      }
+      
+      if (order.paymentStatus === 'paid') {
+        if (order.paymentMethod?.toLowerCase() === 'cash') cash += order.totalAmount;
+        else if (order.paymentMethod?.toLowerCase() === 'card') card += order.totalAmount;
+        else online += order.totalAmount;
+      }
+    });
+
+    res.json({ cash, online, card, total: cash + online + card, activeOrders });
+  } catch (error) {
+    console.error("Fetch Shift Summary Error:", error);
     res.status(500).json({ message: 'Server error' });
   }
 };

@@ -10,7 +10,9 @@ export interface IOrder extends Document {
   user?: mongoose.Types.ObjectId;
   items: IOrderItem[];
   totalAmount: number;
-  status: 'preparing' | 'out_for_delivery' | 'delivered';
+  orderType: 'dine_in' | 'takeaway' | 'delivery';
+  tableNumber?: string;
+  status: 'received' | 'preparing' | 'ready' | 'out_for_delivery' | 'delivered' | 'completed';
   paymentStatus: 'pending' | 'paid' | 'failed';
   paymentMethod?: string;
   deliveryAddress?: string;
@@ -29,7 +31,9 @@ const OrderSchema: Schema = new Schema(
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     items: [OrderItemSchema],
     totalAmount: { type: Number, required: true },
-    status: { type: String, enum: ['preparing', 'out_for_delivery', 'delivered'], default: 'preparing' },
+    orderType: { type: String, enum: ['dine_in', 'takeaway', 'delivery'], default: 'delivery' },
+    tableNumber: { type: String },
+    status: { type: String, enum: ['received', 'preparing', 'ready', 'out_for_delivery', 'delivered', 'completed'], default: 'received' },
     paymentStatus: { type: String, enum: ['pending', 'paid', 'failed'], default: 'pending' },
     paymentMethod: { type: String },
     deliveryAddress: { type: String },

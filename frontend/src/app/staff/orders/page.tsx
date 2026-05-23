@@ -11,6 +11,12 @@ interface Order {
   createdAt: string;
   totalAmount: number;
   items: any[];
+  shippingDetails?: {
+    latitude?: number;
+    longitude?: number;
+    address?: string;
+    phone?: string;
+  };
 }
 
 export default function OrderManagement() {
@@ -89,6 +95,16 @@ export default function OrderManagement() {
                 <h3 className="text-white font-bold mt-2">
                   {order.tableNumber ? `Table ${order.tableNumber}` : `Order #${order.id.slice(-6)}`}
                 </h3>
+                {order.orderType === 'delivery' && order.shippingDetails?.latitude && (
+                  <a 
+                    href={`https://www.google.com/maps/search/?api=1&query=${order.shippingDetails.latitude},${order.shippingDetails.longitude}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[10px] text-blue-400 hover:text-blue-300 underline mt-1 inline-block"
+                  >
+                    📍 View on Google Maps
+                  </a>
+                )}
               </div>
               <div className="text-right">
                 <p className="text-[var(--gold-primary)] font-serif font-bold">₹{order.totalAmount}</p>

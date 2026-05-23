@@ -10,17 +10,33 @@ export const protect = (req: AuthRequest, res: Response, next: NextFunction) => 
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
     try {
       token = req.headers.authorization.split(' ')[1];
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret123') as any;
-      req.user = { id: decoded.id, role: decoded.role };
-      return next();
+      if (token && token !== 'null') {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret123') as any;
+        req.user = { id: decoded.id, role: decoded.role };
+        return next();
+      }
     } catch (error) {
       return res.status(401).json({ message: 'Not authorized, token failed' });
     }
   }
 
-  if (!token) {
-    return res.status(401).json({ message: 'Not authorized, no token' });
+  return res.status(401).json({ message: 'Not authorized, no token' });
+};
+
+export const optionalAuth = (req: AuthRequest, res: Response, next: NextFunction) => {
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+    try {
+      const token = req.headers.authorization.split(' ')[1];
+      if (token && token !== 'null') {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret123') as any;
+        req.user = { id: decoded.id, role: decoded.role };
+      }
+    } catch (error) {
+      // Don't throw error, just proceed as guest
+      console.log('Invalid token provided for optional route, treating as guest');
+    }
   }
+  next();
 };
 
 export const admin = (req: AuthRequest, res: Response, next: NextFunction) => {

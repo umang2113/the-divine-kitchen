@@ -1,13 +1,13 @@
 import express from 'express';
 import { createOrder, getOrders, updateOrderStatus, getMyOrders, getOrderById, getShiftSummary } from '../controllers/orderController';
-import { protect, admin, staffOrAdmin } from '../middlewares/authMiddleware';
+import { protect, optionalAuth, admin, staffOrAdmin } from '../middlewares/authMiddleware';
 
 const router = express.Router();
 
 router.get('/shift-summary', protect as express.RequestHandler, staffOrAdmin as express.RequestHandler, getShiftSummary as express.RequestHandler);
 
 router.route('/')
-  .post(protect as express.RequestHandler, createOrder as express.RequestHandler)
+  .post(optionalAuth as express.RequestHandler, createOrder as express.RequestHandler)
   .get(protect as express.RequestHandler, staffOrAdmin as express.RequestHandler, getOrders as express.RequestHandler);
 
 router.get('/my', protect as express.RequestHandler, getMyOrders as express.RequestHandler);

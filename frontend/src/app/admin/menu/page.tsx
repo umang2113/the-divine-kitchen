@@ -11,16 +11,14 @@ export default function AdminMenu() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [isBulkUploading, setIsBulkUploading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [formData, setFormData] = useState({
     category_name: "", subcategory_name: "", catalogue_id: "", catalogue_name: "", variant_id: "", variant_name: "", current_price: 0, description: "", image_url: ""
   });
 
-  const handleBulkUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const processCsvFile = (file: File) => {
     setIsBulkUploading(true);
     Papa.parse(file, {
       header: true,
@@ -30,7 +28,7 @@ export default function AdminMenu() {
           const rows = results.data as any[];
           let successCount = 0;
           for (const row of rows) {
-            if (!row.catalogue_name && !row.category_name) continue; // Skip invalid rows
+            if (!row.catalogue_name && !row.category_name) continue; 
             
             await createMenuItem({
               category_name: row.category_name || "",
@@ -52,7 +50,6 @@ export default function AdminMenu() {
           alert("Error uploading some items. Check console for details.");
         } finally {
           setIsBulkUploading(false);
-          e.target.value = '';
         }
       },
       error: (error: any) => {
@@ -60,6 +57,35 @@ export default function AdminMenu() {
         setIsBulkUploading(false);
       }
     });
+  };
+
+  const handleBulkUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      processCsvFile(file);
+      e.target.value = '';
+    }
+  };
+
+  const onDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const onDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const onDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file && (file.name.endsWith('.csv') || file.type === 'text/csv')) {
+      processCsvFile(file);
+    } else if (file) {
+      alert("Please upload a valid .csv file.");
+    }
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -125,10 +151,15 @@ export default function AdminMenu() {
           <p className="text-gray-500 text-[10px] mt-1 uppercase tracking-widest">{menuItems.length} Total Items</p>
         </div>
         <div className="flex gap-4">
-          <label className={`px-6 py-3 border border-[var(--gold-primary)] text-[var(--gold-primary)] text-[10px] font-bold uppercase tracking-widest hover:bg-[var(--gold-primary)] hover:text-black transition-all duration-500 flex items-center gap-2 cursor-pointer ${isBulkUploading ? 'opacity-50 pointer-events-none' : ''}`}>
+          <label 
+            onDragOver={onDragOver}
+            onDragLeave={onDragLeave}
+            onDrop={onDrop}
+            className={`px-6 py-2 border-2 border-dashed ${isDragging ? 'border-[var(--gold-primary)] bg-[var(--gold-primary)]/10 text-[var(--gold-primary)]' : 'border-gray-500/50 text-gray-500 hover:border-[var(--gold-primary)] hover:text-[var(--gold-primary)]'} text-[10px] font-bold uppercase tracking-widest transition-all duration-300 flex flex-col items-center justify-center gap-1 cursor-pointer min-w-[220px] ${isBulkUploading ? 'opacity-50 pointer-events-none' : ''}`}
+          >
             <input type="file" accept=".csv" className="hidden" onChange={handleBulkUpload} disabled={isBulkUploading} />
-            {isBulkUploading ? <Loader2 size={14} className="animate-spin" /> : <UploadCloud size={14}/>}
-            {isBulkUploading ? 'Uploading...' : 'Bulk Upload CSV'}
+            {isBulkUploading ? <Loader2 size={16} className="animate-spin" /> : <UploadCloud size={16}/>}
+            {isBulkUploading ? 'Uploading...' : 'Drag & Drop CSV or Click'}
           </label>
           <button 
             onClick={() => { setEditingItem(null); setFormData({ category_name: "", subcategory_name: "", catalogue_id: "", catalogue_name: "", variant_id: "", variant_name: "", current_price: 0, description: "", image_url: "" }); setShowModal(true); }}

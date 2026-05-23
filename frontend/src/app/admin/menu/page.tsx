@@ -12,7 +12,7 @@ export default function AdminMenu() {
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [formData, setFormData] = useState({
-    name: "", description: "", price: 0, category: "starters", imageUrl: "", isSpecial: false
+    category_name: "", subcategory_name: "", catalogue_id: "", catalogue_name: "", variant_id: "", variant_name: "", current_price: 0, description: "", image_url: ""
   });
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -22,7 +22,7 @@ export default function AdminMenu() {
     setUploading(true);
     try {
       const url = await uploadImage(file);
-      setFormData({ ...formData, imageUrl: url });
+      setFormData({ ...formData, image_url: url });
     } catch (err: any) {
       alert("Upload failed: " + (err.message || "Unknown error"));
       console.error("Upload Error:", err);
@@ -78,7 +78,7 @@ export default function AdminMenu() {
           <p className="text-gray-500 text-[10px] mt-1 uppercase tracking-widest">{menuItems.length} Total Items</p>
         </div>
         <button 
-          onClick={() => { setEditingItem(null); setFormData({ name:"", description:"", price:0, category:"starters", imageUrl:"", isSpecial:false }); setShowModal(true); }}
+          onClick={() => { setEditingItem(null); setFormData({ category_name: "", subcategory_name: "", catalogue_id: "", catalogue_name: "", variant_id: "", variant_name: "", current_price: 0, description: "", image_url: "" }); setShowModal(true); }}
           className="px-8 py-3 bg-[var(--gold-primary)] text-black text-[10px] font-bold uppercase tracking-widest hover:bg-white transition-all duration-500 flex items-center gap-2"
         >
           <Plus size={14}/> Add New Dish
@@ -89,13 +89,13 @@ export default function AdminMenu() {
         {menuItems.map(item => (
           <div key={item.id} className="bg-[var(--surface-dark)] border border-[var(--surface-border)] p-4 flex gap-6 hover:border-[var(--gold-primary)]/50 transition-all group">
             <div className="w-24 h-24 overflow-hidden shrink-0 bg-black/40 flex items-center justify-center">
-              {item.imageUrl ? <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" /> : <UtensilsCrossed className="text-gray-800"/>}
+              {item.image_url || item.imageUrl ? <img src={item.image_url || item.imageUrl} alt={item.catalogue_name || item.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" /> : <UtensilsCrossed className="text-gray-800"/>}
             </div>
             <div className="flex-1 flex flex-col justify-between py-1">
               <div>
-                <h4 className="text-white text-xs uppercase font-bold tracking-widest">{item.name}</h4>
-                <p className="text-[var(--gold-primary)] font-serif text-lg mt-1">₹{item.price}</p>
-                <span className="text-[8px] uppercase tracking-widest text-gray-500 bg-white/5 px-2 py-0.5">{item.category}</span>
+                <h4 className="text-white text-xs uppercase font-bold tracking-widest">{item.catalogue_name || item.name}</h4>
+                <p className="text-[var(--gold-primary)] font-serif text-lg mt-1">₹{item.current_price !== undefined ? item.current_price : item.price}</p>
+                <span className="text-[8px] uppercase tracking-widest text-gray-500 bg-white/5 px-2 py-0.5">{item.category_name || item.category}</span>
               </div>
               <div className="flex gap-4">
                 <button onClick={() => { setEditingItem(item); setFormData(item); setShowModal(true); }} className="text-[10px] text-gray-500 hover:text-white uppercase tracking-widest font-bold transition-colors flex items-center gap-1"><Edit2 size={10}/> Edit</button>
@@ -113,36 +113,54 @@ export default function AdminMenu() {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowModal(false)} className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
             <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="relative bg-[var(--surface-dark)] border border-[var(--surface-border)] w-full max-w-lg p-8 md:p-12 shadow-2xl">
               <h2 className="text-2xl font-serif text-white mb-8 uppercase tracking-widest">{editingItem ? "Edit Dish" : "Add New Dish"}</h2>
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="space-y-2">
-                  <label className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Dish Name</label>
-                  <input value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full bg-background border border-[var(--surface-border)] p-3 text-white text-xs focus:border-[var(--gold-primary)] outline-none" required />
-                </div>
-                <div className="grid grid-cols-2 gap-6">
+              <form onSubmit={handleSubmit} className="space-y-6 max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar">
+                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Price (₹)</label>
-                    <input 
-                      type="number" 
-                      step="0.01" 
-                      value={isNaN(formData.price) ? "" : formData.price} 
-                      onChange={e => setFormData({...formData, price: e.target.value === "" ? 0 : parseFloat(e.target.value)})} 
-                      className="w-full bg-background border border-[var(--surface-border)] p-3 text-white text-xs focus:border-[var(--gold-primary)] outline-none" 
-                      required 
-                    />
+                    <label className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Category Name</label>
+                    <input value={formData.category_name} onChange={e => setFormData({...formData, category_name: e.target.value})} className="w-full bg-background border border-[var(--surface-border)] p-3 text-white text-xs focus:border-[var(--gold-primary)] outline-none" required />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Category</label>
-                    <select value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} className="w-full bg-background border border-[var(--surface-border)] p-3 text-white text-xs focus:border-[var(--gold-primary)] outline-none appearance-none">
-                      <option value="starters">Starters</option>
-                      <option value="mains">Mains</option>
-                      <option value="desserts">Desserts</option>
-                      <option value="drinks">Drinks</option>
-                    </select>
+                    <label className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Subcategory Name</label>
+                    <input value={formData.subcategory_name} onChange={e => setFormData({...formData, subcategory_name: e.target.value})} className="w-full bg-background border border-[var(--surface-border)] p-3 text-white text-xs focus:border-[var(--gold-primary)] outline-none" />
                   </div>
                 </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Catalogue ID</label>
+                    <input value={formData.catalogue_id} onChange={e => setFormData({...formData, catalogue_id: e.target.value})} className="w-full bg-background border border-[var(--surface-border)] p-3 text-white text-xs focus:border-[var(--gold-primary)] outline-none" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Catalogue Name</label>
+                    <input value={formData.catalogue_name} onChange={e => setFormData({...formData, catalogue_name: e.target.value})} className="w-full bg-background border border-[var(--surface-border)] p-3 text-white text-xs focus:border-[var(--gold-primary)] outline-none" required />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Variant ID</label>
+                    <input value={formData.variant_id} onChange={e => setFormData({...formData, variant_id: e.target.value})} className="w-full bg-background border border-[var(--surface-border)] p-3 text-white text-xs focus:border-[var(--gold-primary)] outline-none" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Variant Name</label>
+                    <input value={formData.variant_name} onChange={e => setFormData({...formData, variant_name: e.target.value})} className="w-full bg-background border border-[var(--surface-border)] p-3 text-white text-xs focus:border-[var(--gold-primary)] outline-none" />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Current Price (₹)</label>
+                    <input type="number" step="0.01" value={isNaN(formData.current_price) ? "" : formData.current_price} onChange={e => setFormData({...formData, current_price: e.target.value === "" ? 0 : parseFloat(e.target.value)})} className="w-full bg-background border border-[var(--surface-border)] p-3 text-white text-xs focus:border-[var(--gold-primary)] outline-none" required />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Description</label>
+                    <input value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full bg-background border border-[var(--surface-border)] p-3 text-white text-xs focus:border-[var(--gold-primary)] outline-none" />
+                  </div>
+                </div>
+
                 <div className="space-y-4">
                   <div className="flex justify-between items-end">
-                    <label className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Dish Image</label>
+                    <label className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Dish Image URL</label>
                     <label className="text-[8px] text-[var(--gold-primary)] uppercase tracking-widest font-bold cursor-pointer hover:text-white transition-colors">
                       <input type="file" className="hidden" accept="image/*" onChange={handleFileUpload} disabled={uploading} />
                       <div className="flex items-center gap-1">
@@ -153,30 +171,27 @@ export default function AdminMenu() {
                   </div>
                   <div className="relative group">
                     <input 
-                      value={formData.imageUrl} 
-                      onChange={e => setFormData({...formData, imageUrl: e.target.value})} 
+                      value={formData.image_url} 
+                      onChange={e => setFormData({...formData, image_url: e.target.value})} 
                       placeholder="Or paste an image URL here..."
                       className="w-full bg-background border border-[var(--surface-border)] p-3 pr-10 text-white text-xs focus:border-[var(--gold-primary)] outline-none" 
                     />
-                    {formData.imageUrl && (
+                    {formData.image_url && (
                       <div className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500">
                         <Check size={14}/>
                       </div>
                     )}
                   </div>
-                  {formData.imageUrl && (
+                  {formData.image_url && (
                     <div className="w-full h-32 border border-[var(--surface-border)] bg-black/40 overflow-hidden">
-                       <img src={formData.imageUrl} alt="Preview" className="w-full h-full object-contain p-2"/>
+                       <img src={formData.image_url} alt="Preview" className="w-full h-full object-contain p-2"/>
                     </div>
                   )}
                 </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Description</label>
-                  <textarea rows={3} value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full bg-background border border-[var(--surface-border)] p-3 text-white text-xs focus:border-[var(--gold-primary)] outline-none resize-none" required />
-                </div>
-                <div className="flex justify-end gap-4 pt-4">
+
+                <div className="flex justify-end gap-4 pt-6 border-t border-[var(--surface-border)] mt-6">
                   <button type="button" onClick={() => setShowModal(false)} className="px-6 py-3 text-[10px] text-gray-500 uppercase tracking-widest font-bold hover:text-white">Cancel</button>
-                  <button type="submit" className="px-10 py-3 bg-[var(--gold-primary)] text-black text-[10px] font-bold uppercase tracking-widest hover:bg-white transition-all">Save Dish</button>
+                  <button type="submit" className="px-10 py-3 bg-[var(--gold-primary)] text-black text-[10px] font-bold uppercase tracking-widest hover:bg-white transition-all">Save Menu Item</button>
                 </div>
               </form>
             </motion.div>

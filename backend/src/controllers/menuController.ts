@@ -26,16 +26,25 @@ export const getMenuItems = async (req: Request, res: Response) => {
 // @access  Private/Admin
 export const createMenuItem = async (req: Request, res: Response) => {
   try {
-    const { name, description, price, category, isSpecial, imageUrl } = req.body;
+    const { 
+      category_name, subcategory_name, catalogue_id, catalogue_name, 
+      variant_id, variant_name, current_price, description, image_url,
+      // Fallbacks in case old admin UI is briefly cached
+      name, price, category, imageUrl, isSpecial 
+    } = req.body;
 
     const menuItem = {
-      name,
-      description,
-      price,
-      category,
-      isSpecial,
-      imageUrl,
+      category_name: category_name || category || "",
+      subcategory_name: subcategory_name || "",
+      catalogue_id: catalogue_id || "",
+      catalogue_name: catalogue_name || name || "",
+      variant_id: variant_id || "",
+      variant_name: variant_name || "",
+      current_price: current_price !== undefined ? current_price : (price || 0),
+      description: description || "",
+      image_url: image_url || imageUrl || "",
       isAvailable: true,
+      isSpecial: isSpecial || false, // Keeping for backward compatibility flag
       createdAt: new Date().toISOString()
     };
 
@@ -52,11 +61,30 @@ export const createMenuItem = async (req: Request, res: Response) => {
 // @access  Private/Admin
 export const updateMenuItem = async (req: Request, res: Response) => {
   try {
-    const { name, description, price, category, isSpecial, imageUrl, isAvailable } = req.body;
-    await db.collection('menu').doc(req.params.id).update({
-      name, description, price, category, isSpecial, imageUrl, isAvailable,
+    const { 
+      category_name, subcategory_name, catalogue_id, catalogue_name, 
+      variant_id, variant_name, current_price, description, image_url,
+      isAvailable, isSpecial,
+      name, price, category, imageUrl
+    } = req.body;
+
+    const updateData: any = {
+      category_name: category_name || category || "",
+      subcategory_name: subcategory_name || "",
+      catalogue_id: catalogue_id || "",
+      catalogue_name: catalogue_name || name || "",
+      variant_id: variant_id || "",
+      variant_name: variant_name || "",
+      current_price: current_price !== undefined ? current_price : (price || 0),
+      description: description || "",
+      image_url: image_url || imageUrl || "",
       updatedAt: new Date().toISOString()
-    });
+    };
+
+    if (isAvailable !== undefined) updateData.isAvailable = isAvailable;
+    if (isSpecial !== undefined) updateData.isSpecial = isSpecial;
+
+    await db.collection('menu').doc(req.params.id).update(updateData);
     res.json({ message: 'Menu item updated successfully' });
   } catch (error) {
     console.error("Update Menu Item Error:", error);

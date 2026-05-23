@@ -9,9 +9,6 @@ import { Search, ShoppingBag } from "lucide-react";
 import { getMenuItems } from "@/lib/api";
 import { useCart } from "@/context/CartContext";
 
-// Mock Data for fallback
-const menuCategories = ["All", "Starters", "Main Course", "Desserts", "Drinks", "Chef Specials"];
-
 export default function MenuPage() {
   const { addToCart } = useCart();
   const [activeCategory, setActiveCategory] = useState("All");
@@ -41,10 +38,14 @@ export default function MenuPage() {
     loadMenu();
   }, []);
 
+  const dynamicCategories = ["All", ...Array.from(new Set(menuItems.map(item => item.category_name || item.category).filter(Boolean)))];
+
   const filteredMenu = menuItems.filter((item) => {
-    const matchesCategory = activeCategory === "All" || item.category === activeCategory;
-    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          item.description.toLowerCase().includes(searchQuery.toLowerCase());
+    const itemCat = item.category_name || item.category;
+    const matchesCategory = activeCategory === "All" || itemCat === activeCategory;
+    const itemName = item.catalogue_name || item.name || "";
+    const matchesSearch = itemName.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()));
     return matchesCategory && matchesSearch;
   });
 
@@ -78,7 +79,7 @@ export default function MenuPage() {
         <div className="flex flex-col md:flex-row justify-between items-center gap-6 mb-12">
           {/* Categories */}
           <div className="flex flex-wrap justify-center gap-3">
-            {menuCategories.map((category) => (
+            {dynamicCategories.map((category: any) => (
               <button
                 key={category}
                 onClick={() => setActiveCategory(category)}
@@ -126,10 +127,10 @@ export default function MenuPage() {
                       Chef Special
                     </span>
                   )}
-                  {(item.image || item.imageUrl) ? (
+                  {(item.image_url || item.image || item.imageUrl) ? (
                     <Image 
-                      src={item.image || item.imageUrl} 
-                      alt={item.name} 
+                      src={item.image_url || item.image || item.imageUrl} 
+                      alt={item.catalogue_name || item.name} 
                       fill
                       sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                       className="object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
@@ -145,17 +146,23 @@ export default function MenuPage() {
                 <div className="p-6">
                   <div className="flex justify-between items-start mb-4">
                     <h3 className="text-xl font-serif text-white group-hover:text-[var(--gold-primary)] transition-colors">
-                      {item.name}
+                      {item.catalogue_name || item.name} {item.variant_name && <span className="text-sm text-gray-400 block">{item.variant_name}</span>}
                     </h3>
-                    <span className="text-[var(--gold-primary)] font-serif text-xl ml-4">
-                      ₹{item.price}
+                    <span className="text-[var(--gold-primary)] font-serif text-xl ml-4 shrink-0">
+                      ₹{item.current_price !== undefined ? item.current_price : item.price}
                     </span>
                   </div>
                   <p className="text-gray-400 font-light text-sm mb-6 min-h-[40px]">
                     {item.description}
                   </p>
                   <button 
-                    onClick={() => addToCart(item)}
+                    onClick={() => addToCart({
+                      ...item,
+                      id: item.id,
+                      name: `${item.catalogue_name || item.name}${item.variant_name ? ' - ' + item.variant_name : ''}`,
+                      price: item.current_price !== undefined ? item.current_price : item.price,
+                      image: item.image_url || item.imageUrl || item.image
+                    })}
                     className="w-full py-3 flex items-center justify-center gap-2 border border-[var(--surface-border)] hover:bg-[var(--gold-primary)] hover:text-black hover:border-[var(--gold-primary)] transition-all duration-300 text-sm tracking-widest uppercase font-semibold text-white group/btn"
                   >
                     <ShoppingBag size={16} />

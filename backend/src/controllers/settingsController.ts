@@ -15,7 +15,8 @@ export const getSettings = async (req: Request, res: Response) => {
           monThu: "5:00 PM - 11:00 PM",
           friSat: "5:00 PM - 1:00 AM",
           sunday: "4:00 PM - 10:00 PM"
-        }
+        },
+        upiId: ""
       };
       return res.json(defaultSettings);
     }
@@ -32,12 +33,13 @@ export const getSettings = async (req: Request, res: Response) => {
 // @access  Private/Admin
 export const updateSettings = async (req: Request, res: Response) => {
   try {
-    const { openingHours } = req.body;
+    const { openingHours, upiId } = req.body;
 
-    await db.collection('settings').doc('restaurant').set({
-      openingHours,
-      updatedAt: new Date().toISOString()
-    }, { merge: true });
+    const updateData: any = { updatedAt: new Date().toISOString() };
+    if (openingHours) updateData.openingHours = openingHours;
+    if (upiId !== undefined) updateData.upiId = upiId;
+
+    await db.collection('settings').doc('restaurant').set(updateData, { merge: true });
 
     res.json({ message: 'Settings updated successfully' });
   } catch (error) {

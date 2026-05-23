@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { getAllReservations, getMenuItems } from "@/lib/api";
+import { getAllReservations, getMenuItems, getSettings } from "@/lib/api";
 import { Search, Plus, Minus, Trash2, Printer, X, CreditCard } from "lucide-react";
+import { QRCodeCanvas } from "qrcode.react";
 import clsx from "clsx";
 
 export default function AdminBilling() {
@@ -17,6 +18,7 @@ export default function AdminBilling() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isInvoiceReady, setIsInvoiceReady] = useState(false);
   const [paymentMode, setPaymentMode] = useState("Cash");
+  const [upiId, setUpiId] = useState("");
 
   useEffect(() => {
     fetchInitialData();
@@ -24,14 +26,18 @@ export default function AdminBilling() {
 
   const fetchInitialData = async () => {
     try {
-      const [resData, menuData] = await Promise.all([
+      const [resData, menuData, settingsData] = await Promise.all([
         getAllReservations(),
-        getMenuItems()
+        getMenuItems(),
+        getSettings()
       ]);
       // Only show confirmed reservations for today
       const today = new Date().toISOString().split('T')[0];
       setReservations(resData.filter((r: any) => r.status === 'confirmed' && r.date === today));
       setMenuItems(menuData);
+      if (settingsData && settingsData.upiId) {
+        setUpiId(settingsData.upiId);
+      }
     } catch (error) {
       console.error("Error fetching billing data:", error);
     } finally {
@@ -70,9 +76,8 @@ export default function AdminBilling() {
   };
 
   const subtotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
-  const tax = subtotal * 0.05; // 5% GST
   const deposit = selectedRes?.amount || 0;
-  const total = Math.max(0, subtotal + tax - deposit);
+  const total = Math.max(0, subtotal - deposit);
 
   const filteredMenu = menuItems.filter(item => {
     const name = item.catalogue_name || item.name || "";
@@ -84,7 +89,26 @@ export default function AdminBilling() {
   if (loading) return null;
 
   return (
-    <div className="flex flex-col lg:flex-row gap-8 min-h-[calc(100vh-200px)]">
+    <>
+      <style>{`
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+          #invoice-print, #invoice-print * {
+            visibility: visible;
+          }
+          #invoice-print {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            margin: 0;
+            padding: 20px;
+          }
+        }
+      `}</style>
+      <div className="flex flex-col lg:flex-row gap-8 min-h-[calc(100vh-200px)] print:hidden">
       
       {/* Left Side: Menu Selection */}
       <div className="w-full lg:w-2/3 space-y-6">
@@ -213,10 +237,6 @@ export default function AdminBilling() {
                   <span className="text-gray-500">Subtotal</span>
                   <span className="text-white">₹{subtotal.toFixed(2)}</span>
                </div>
-               <div className="flex justify-between text-[10px] uppercase tracking-widest">
-                  <span className="text-gray-500">Tax (GST 5%)</span>
-                  <span className="text-white">₹{tax.toFixed(2)}</span>
-               </div>
                {selectedRes && (
                   <div className="flex justify-between text-[10px] uppercase tracking-widest text-green-500">
                      <span>Reservation Deposit</span>
@@ -260,13 +280,13 @@ export default function AdminBilling() {
       {/* Invoice Modal */}
       <AnimatePresence>
          {isInvoiceReady && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
-               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsInvoiceReady(false)} className="absolute inset-0 bg-black/90 backdrop-blur-sm" />
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 print:absolute print:inset-0 print:bg-white print:p-0">
+               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsInvoiceReady(false)} className="absolute inset-0 bg-black/90 backdrop-blur-sm print:hidden" />
                <motion.div 
                  initial={{ opacity: 0, scale: 0.9, y: 20 }} 
                  animate={{ opacity: 1, scale: 1, y: 0 }} 
                  exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                 className="relative w-full max-w-lg bg-white p-12 text-black font-sans"
+                 className="relative w-full max-w-lg bg-white p-12 text-black font-sans print:w-full print:max-w-none print:shadow-none print:p-8"
                >
                   <button onClick={() => setIsInvoiceReady(false)} className="absolute top-4 right-4 text-gray-400 hover:text-black print:hidden">
                      <X size={20}/>
@@ -312,10 +332,6 @@ export default function AdminBilling() {
                            <span>Subtotal</span>
                            <span>₹{subtotal.toFixed(2)}</span>
                         </div>
-                        <div className="flex justify-between text-[10px] uppercase">
-                           <span>GST (5%)</span>
-                           <span>₹{tax.toFixed(2)}</span>
-                        </div>
                         {selectedRes && (
                            <div className="flex justify-between text-[10px] uppercase text-gray-500 italic">
                               <span>Reservation Deposit Credit</span>
@@ -331,6 +347,18 @@ export default function AdminBilling() {
                            <span>₹{total.toFixed(2)}</span>
                         </div>
                      </div>
+
+                     {paymentMode === 'UPI' && upiId && total > 0 && (
+                        <div className="flex flex-col items-center justify-center pt-6 pb-2 border-t border-gray-100">
+                           <p className="text-[10px] font-bold uppercase tracking-widest mb-3">Scan to Pay via UPI</p>
+                           <QRCodeCanvas 
+                             value={`upi://pay?pa=${upiId}&pn=The Divine&am=${total.toFixed(2)}&cu=INR`}
+                             size={120}
+                             level="M"
+                             includeMargin={true}
+                           />
+                        </div>
+                     )}
 
                      <div className="text-center pt-8 border-t border-gray-100">
                         <p className="text-[8px] uppercase tracking-widest font-medium mb-1">Thank you for dining with us</p>
@@ -348,6 +376,6 @@ export default function AdminBilling() {
             </div>
          )}
       </AnimatePresence>
-    </div>
+    </>
   );
 }

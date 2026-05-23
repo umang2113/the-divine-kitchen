@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { getAllReservations, getMenuItems, getSettings } from "@/lib/api";
-import { Search, Plus, Minus, Trash2, Printer, X, CreditCard } from "lucide-react";
+import { getAllReservations, getMenuItems, getSettings, placeOrder } from "@/lib/api";
+import { Search, Plus, Minus, Trash2, Printer, X, CreditCard, Loader2 } from "lucide-react";
 import { QRCodeCanvas } from "qrcode.react";
 import clsx from "clsx";
 
@@ -19,6 +19,7 @@ export default function AdminBilling() {
   const [isInvoiceReady, setIsInvoiceReady] = useState(false);
   const [paymentMode, setPaymentMode] = useState("Cash");
   const [upiId, setUpiId] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
     fetchInitialData();
@@ -75,15 +76,42 @@ export default function AdminBilling() {
     setCart(cart.filter(item => item.id !== id));
   };
 
-  const handlePrint = () => {
-    window.print();
-    // After 5 seconds, prepare for the next customer
-    setTimeout(() => {
-      setIsInvoiceReady(false);
-      setCart([]);
-      setSelectedRes(null);
-      setPaymentMode("Cash");
-    }, 5000);
+  const handlePrint = async () => {
+    setIsProcessing(true);
+    try {
+      // Calculate derived totals again just to be safe
+      const currentSubtotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+      const currentTotal = Math.max(0, currentSubtotal - (selectedRes?.amount || 0));
+
+      // Save order to database
+      await placeOrder({
+        items: cart,
+        totalAmount: currentTotal,
+        paymentMethod: paymentMode,
+        source: 'pos',
+        shippingDetails: {
+          name: selectedRes ? `${selectedRes.name} (Table ${selectedRes.tableId})` : "Walk-in Guest",
+          type: "Dine-in",
+        }
+      });
+      
+      // Print the invoice
+      window.print();
+      
+      // After 5 seconds, prepare for the next customer
+      setTimeout(() => {
+        setIsInvoiceReady(false);
+        setCart([]);
+        setSelectedRes(null);
+        setPaymentMode("Cash");
+        setIsProcessing(false);
+      }, 5000);
+    } catch (error) {
+      console.error("Failed to save POS order:", error);
+      alert("Error saving order. Invoice will still print.");
+      window.print();
+      setIsProcessing(false);
+    }
   };
 
   const subtotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
@@ -380,9 +408,11 @@ export default function AdminBilling() {
 
                   <button 
                     onClick={handlePrint}
+                    disabled={isProcessing}
                     className="w-full mt-10 py-4 bg-black text-white text-[10px] font-bold uppercase tracking-widest hover:bg-gray-800 transition-all flex items-center justify-center gap-2 print:hidden"
                   >
-                     <Printer size={16}/> Print Invoice
+                     {isProcessing ? <Loader2 size={16} className="animate-spin" /> : <Printer size={16}/>} 
+                     {isProcessing ? 'Processing & Printing...' : 'Print Invoice'}
                   </button>
                </motion.div>
             </div>

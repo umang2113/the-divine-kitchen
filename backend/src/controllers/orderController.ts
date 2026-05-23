@@ -7,17 +7,19 @@ import { sendOrderConfirmation, sendOutForDeliveryEmail, sendOrderDeliveredEmail
 // @access  Public (or Private)
 export const createOrder = async (req: Request, res: Response) => {
   try {
-    const { items, totalAmount, shippingDetails, paymentMethod } = req.body;
+    const { items, totalAmount, shippingDetails, paymentMethod, source } = req.body;
 
     const isOnlinePay = paymentMethod === 'Razorpay Online';
+    const isPOS = source === 'pos';
 
     const orderData: any = {
       items,
       totalAmount,
-      shippingDetails,
+      shippingDetails: shippingDetails || {},
       paymentMethod,
-      status: isOnlinePay ? 'pending_payment' : 'preparing',
-      paymentStatus: isOnlinePay ? 'pending' : 'cod',
+      source: isPOS ? 'pos' : 'online',
+      status: isPOS ? 'completed' : (isOnlinePay ? 'pending_payment' : 'preparing'),
+      paymentStatus: isPOS ? 'paid' : (isOnlinePay ? 'pending' : 'cod'),
       createdAt: new Date().toISOString()
     };
 
@@ -30,7 +32,8 @@ export const createOrder = async (req: Request, res: Response) => {
     const orderWithId = { id: docRef.id, ...orderData };
 
     // Send Premium Email Confirmation ONLY for COD (online payments send confirmation upon successful callback)
-    if (!isOnlinePay) {
+    // For POS orders, we skip email unless they specifically provided one (but we'll skip by default for now)
+    if (!isOnlinePay && !isPOS && shippingDetails?.email) {
       await sendOrderConfirmation(orderWithId);
     }
 

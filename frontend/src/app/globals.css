@@ -53,8 +53,45 @@ h6 {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--surface-border);
+  background-color: var(--gold-primary);
+  color: black;
   border-radius: 4px;
+}
+
+@media print {
+  /* Hide everything by default */
+  body * {
+    visibility: hidden;
+  }
+  
+  /* Show only the receipt and its contents */
+  .print\:block, .print\:block * {
+    visibility: visible;
+  }
+  
+  /* Position the receipt at the top left of the printed page */
+  .print\:block {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 80mm !important;
+    margin: 0;
+    padding: 0;
+    background-color: white !important;
+    color: black !important;
+  }
+
+  /* Remove page margins and background colors */
+  @page {
+    margin: 0;
+    size: 80mm auto;
+  }
+
+  /* Ensure background colors are printed (e.g. black text on white bg) */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
 }
 
 ::-webkit-scrollbar-thumb:hover {

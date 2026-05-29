@@ -18,8 +18,12 @@ import deliveryRoutes from './routes/deliveryRoutes';
 import settingsRoutes from './routes/settingsRoutes';
 import paymentRoutes from './routes/paymentRoutes';
 import { initBackgroundTasks } from './utils/backgroundTasks';
+import { initSocket } from './utils/socket';
+import { createServer } from 'http';
 
 const app = express();
+const httpServer = createServer(app);
+initSocket(httpServer);
 const PORT = process.env.PORT || 5000;
 
 // Security Middlewares
@@ -78,7 +82,7 @@ app.get('/', (req: Request, res: Response) => {
 app.use(errorHandler);
 
 // Start server
-app.listen(PORT, () => {
+httpServer.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
   console.log('Firebase Firestore Connected Successfully');
   initBackgroundTasks();

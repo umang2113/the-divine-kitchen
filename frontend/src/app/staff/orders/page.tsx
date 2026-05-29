@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { io } from "socket.io-client";
+import { Printer } from "lucide-react";
+import ThermalReceipt from "@/components/ThermalReceipt";
 
 interface Order {
   id: string;
@@ -22,9 +25,35 @@ interface Order {
 export default function OrderManagement() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [printingOrder, setPrintingOrder] = useState<Order | null>(null);
 
   useEffect(() => {
     fetchOrders();
+
+    const socket = io(process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || "http://localhost:5000");
+
+    socket.on('newOrder', (order: Order) => {
+      // Play a sound for new order
+      const audio = new Audio('/notification.mp3');
+      audio.play().catch(e => console.log("Audio play blocked:", e));
+      
+      setOrders(prev => {
+        if (prev.find(o => o.id === order.id)) return prev;
+        return [order, ...prev];
+      });
+    });
+
+    socket.on('orderUpdated', ({ id, status }: { id: string, status: string }) => {
+      if (status === 'completed' || status === 'delivered') {
+        setOrders(prev => prev.filter(o => o.id !== id));
+      } else {
+        setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o));
+      }
+    });
+
+    return () => {
+      socket.disconnect();
+    };
   }, []);
 
   const fetchOrders = async () => {
@@ -142,6 +171,16 @@ export default function OrderManagement() {
                 >
                   Complete
                 </button>
+                <button 
+                  onClick={() => {
+                    setPrintingOrder(order);
+                    setTimeout(() => window.print(), 100);
+                  }}
+                  className="px-4 bg-gray-800 text-white border border-gray-700 py-2 rounded text-xs font-bold uppercase tracking-widest hover:bg-gray-700"
+                  title="Print Bill"
+                >
+                  <Printer size={16} />
+                </button>
               </div>
             </div>
           </motion.div>
@@ -150,6 +189,21 @@ export default function OrderManagement() {
           <p className="text-gray-500 uppercase tracking-widest text-sm py-10 col-span-full text-center">No active orders</p>
         )}
       </div>
+
+      {/* Hidden Printable Receipt */}
+      {printingOrder && (
+        <ThermalReceipt 
+          orderId={printingOrder.id}
+          tableNumber={printingOrder.tableNumber}
+          orderType={printingOrder.orderType}
+          items={printingOrder.items}
+          totalAmount={printingOrder.totalAmount}
+          paymentMethod={(printingOrder as any).paymentMethod}
+          customerName={printingOrder.shippingDetails?.name}
+          customerPhone={printingOrder.shippingDetails?.phone}
+          createdAt={printingOrder.createdAt}
+        />
+      )}
     </div>
   );
 }

@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { ShoppingCart, Plus, Minus, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ShoppingCart, Plus, Minus, X, Printer } from "lucide-react";
+import ThermalReceipt from "@/components/ThermalReceipt";
 
 interface MenuItem {
   id: string;
@@ -23,6 +24,7 @@ export default function POSSystem() {
   const [tableNumber, setTableNumber] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("Cash");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [lastOrder, setLastOrder] = useState<any>(null);
 
   useEffect(() => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/menu`)
@@ -85,13 +87,13 @@ export default function POSSystem() {
         body: JSON.stringify(orderData)
       });
 
+      const data = await res.json();
       if (res.ok) {
-        alert("Order placed successfully!");
+        setLastOrder(data);
         setCart([]);
         setTableNumber("");
       } else {
-        const errorData = await res.json();
-        alert(`Failed to place order: ${errorData.message}`);
+        alert(data.message || "Failed to place order");
       }
     } catch (error) {
       console.error(error);
@@ -196,6 +198,56 @@ export default function POSSystem() {
           </button>
         </div>
       </div>
+
+      {/* Success / Print Modal */}
+      <AnimatePresence>
+        {lastOrder && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm print:hidden"
+          >
+            <div className="bg-[var(--surface-dark)] border border-[var(--surface-border)] p-8 rounded-xl w-full max-w-md text-center shadow-2xl">
+              <div className="w-16 h-16 bg-green-500/20 text-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Printer size={32} />
+              </div>
+              <h2 className="text-2xl font-serif text-white mb-2">Order Success!</h2>
+              <p className="text-gray-400 mb-6">Order #{lastOrder.id.slice(-6)} has been placed.</p>
+              
+              <div className="flex gap-4">
+                <button 
+                  onClick={() => window.print()}
+                  className="flex-1 py-3 bg-[var(--gold-primary)] text-black font-bold uppercase tracking-widest text-xs rounded hover:bg-white transition-colors"
+                >
+                  Print Bill
+                </button>
+                <button 
+                  onClick={() => setLastOrder(null)}
+                  className="flex-1 py-3 bg-gray-800 text-white font-bold uppercase tracking-widest text-xs rounded hover:bg-gray-700 transition-colors"
+                >
+                  New Order
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Hidden Printable Receipt */}
+      {lastOrder && (
+        <ThermalReceipt 
+          orderId={lastOrder.id}
+          tableNumber={lastOrder.tableNumber}
+          orderType={lastOrder.orderType}
+          items={lastOrder.items}
+          totalAmount={lastOrder.totalAmount}
+          paymentMethod={lastOrder.paymentMethod}
+          customerName={lastOrder.shippingDetails?.name}
+          customerPhone={lastOrder.shippingDetails?.phone}
+          createdAt={lastOrder.createdAt}
+        />
+      )}
     </div>
   );
 }

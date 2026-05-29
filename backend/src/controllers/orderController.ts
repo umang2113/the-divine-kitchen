@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { db } from '../config/firebase';
 import { sendOrderConfirmation, sendOutForDeliveryEmail, sendOrderDeliveredEmail } from '../utils/emailUtils';
+import { getIO } from '../utils/socket';
 
 // @desc    Create new order
 // @route   POST /api/orders
@@ -37,6 +38,12 @@ export const createOrder = async (req: Request, res: Response) => {
     // For POS orders, we skip email unless they specifically provided one (but we'll skip by default for now)
     if (!isOnlinePay && !isPOS && shippingDetails?.email) {
       await sendOrderConfirmation(orderWithId);
+    }
+
+    try {
+      getIO().emit('newOrder', orderWithId);
+    } catch (err) {
+      console.error("Socket emission failed:", err);
     }
 
     res.status(201).json(orderWithId);
@@ -84,6 +91,12 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
       if (orderData) {
         await sendOrderDeliveredEmail({ id: req.params.id, ...orderData });
       }
+    }
+
+    try {
+      getIO().emit('orderUpdated', { id: req.params.id, status });
+    } catch (err) {
+      console.error("Socket emission failed:", err);
     }
 
     res.json({ message: 'Order status updated' });

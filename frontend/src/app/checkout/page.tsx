@@ -137,7 +137,7 @@ export default function CheckoutPage() {
         shippingDetails: tableId ? { ...formData, address: `Table ${tableId}`, city: "Dine-in" } : formData,
         paymentMethod: paymentMethod === "Counter" ? "Pay at Counter" : (paymentMethod === "COD" ? "Cash on Delivery" : "Razorpay Online"),
         orderType: tableId ? "dine_in" : "delivery",
-        tableNo: tableId || null
+        tableNumber: tableId || null
       };
 
       const result = await placeOrder(orderData);

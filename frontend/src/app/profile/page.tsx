@@ -3,9 +3,10 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
+import Footer from "@/components/layout/Footer"; // Force recompile
 import { getProfile, updateProfile } from "@/lib/api";
 import { User, Phone, Mail, Shield, LogOut, Save } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export default function ProfilePage() {
   const [user, setUser] = useState<any>(null);
@@ -15,6 +16,7 @@ export default function ProfilePage() {
     name: "",
     phone: ""
   });
+  const router = useRouter();
 
   useEffect(() => {
     fetchProfile();
@@ -30,6 +32,10 @@ export default function ProfilePage() {
       });
     } catch (error) {
       console.error("Error fetching profile:", error);
+      // Redirect to login if token is invalid or missing
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      router.push("/login");
     } finally {
       setLoading(false);
     }

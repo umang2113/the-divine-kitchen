@@ -20,6 +20,9 @@ export const metadata: Metadata = {
   title: "The Divine Kitchen",
   description: "Enterprise Restaurant Management",
   manifest: "/manifest.json",
+};
+
+export const viewport = {
   themeColor: "#000000",
 };
 

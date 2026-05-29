@@ -16,7 +16,8 @@ export default function AdminCustomers() {
   const fetchUsers = async () => {
     try {
       const data = await getAllUsers();
-      setUsers(data);
+      const onlyCustomers = data.filter((u: any) => u.role === "customer" || !u.role);
+      setUsers(onlyCustomers);
     } catch (error) {
       console.error("Error fetching users:", error);
     } finally {

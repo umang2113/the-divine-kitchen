@@ -199,8 +199,8 @@ export default function OrderManagement() {
           items={printingOrder.items}
           totalAmount={printingOrder.totalAmount}
           paymentMethod={(printingOrder as any).paymentMethod}
-          customerName={printingOrder.shippingDetails?.name}
-          customerPhone={printingOrder.shippingDetails?.phone}
+          customerName={(printingOrder.shippingDetails as any)?.name}
+          customerPhone={(printingOrder.shippingDetails as any)?.phone}
           createdAt={printingOrder.createdAt}
         />
       )}

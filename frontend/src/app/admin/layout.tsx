@@ -8,6 +8,7 @@ import {
   UtensilsCrossed, 
   Users, 
   Settings,
+  Package,
   LogOut,
   ArrowLeft,
   Receipt,
@@ -52,6 +53,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { id: "orders", name: "Orders", icon: ShoppingBag, href: "/admin/orders" },
     { id: "reservations", name: "Reservations", icon: CalendarClock, href: "/admin/reservations" },
     { id: "menu", name: "Menu Manager", icon: UtensilsCrossed, href: "/admin/menu" },
+    { id: "inventory", name: "Inventory", icon: Package, href: "/admin/inventory" },
     { id: "customers", name: "Customers", icon: Users, href: "/admin/customers" },
     { id: "settings", name: "Settings", icon: Settings, href: "/admin/settings" }
   ];

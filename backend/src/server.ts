@@ -17,6 +17,7 @@ import adminRoutes from './routes/adminRoutes';
 import deliveryRoutes from './routes/deliveryRoutes';
 import settingsRoutes from './routes/settingsRoutes';
 import paymentRoutes from './routes/paymentRoutes';
+import reviewRoutes from './routes/reviewRoutes';
 import { initBackgroundTasks } from './utils/backgroundTasks';
 import { initSocket } from './utils/socket';
 import { createServer } from 'http';
@@ -72,6 +73,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/delivery', deliveryRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/payment', paymentRoutes);
+app.use('/api/reviews', reviewRoutes);
 
 // Basic Route
 app.get('/', (req: Request, res: Response) => {

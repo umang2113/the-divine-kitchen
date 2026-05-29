@@ -5,14 +5,17 @@ import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { getMyOrders, getOrderDetails } from "@/lib/api";
-import { ShoppingBag, ChevronDown, ChevronUp, Clock, Package, MapPin, Navigation } from "lucide-react";
+import { ShoppingBag, ChevronDown, ChevronUp, Clock, Package, MapPin, Navigation, Star } from "lucide-react";
 import clsx from "clsx";
 import { useCart } from "@/context/CartContext";
+import ReviewModal from "@/components/ReviewModal";
 
 export default function MyOrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [selectedItemForReview, setSelectedItemForReview] = useState<{id: string, name: string} | null>(null);
   const { clearCart } = useCart();
 
   useEffect(() => {
@@ -188,12 +191,26 @@ export default function MyOrdersPage() {
                              <div className="space-y-4">
                                 <p className="text-gray-500 text-[10px] uppercase tracking-widest font-bold border-b border-[var(--surface-border)] pb-2">Items Ordered</p>
                                 {order.items.map((item: any, i: number) => (
-                                   <div key={i} className="flex justify-between items-center text-sm">
+                                   <div key={i} className="flex justify-between items-center text-sm border-b border-gray-800/50 pb-3 mb-3 last:border-0 last:mb-0 last:pb-0">
                                       <div className="flex items-center gap-4">
                                          <span className="text-[var(--gold-primary)] font-mono text-xs">{item.quantity}x</span>
                                          <span className="text-white uppercase tracking-wider text-xs">{item.name}</span>
                                       </div>
-                                      <span className="text-gray-400 font-mono text-xs">₹{item.price * item.quantity}</span>
+                                      <div className="flex items-center gap-4">
+                                         <span className="text-gray-400 font-mono text-xs">₹{item.price * item.quantity}</span>
+                                         {order.status === 'delivered' && (
+                                           <button 
+                                             onClick={(e) => {
+                                               e.stopPropagation();
+                                               setSelectedItemForReview({ id: item.id, name: item.name });
+                                               setReviewModalOpen(true);
+                                             }}
+                                             className="flex items-center gap-1 text-[8px] uppercase tracking-widest text-[var(--gold-primary)] hover:text-white border border-[var(--gold-primary)]/50 px-2 py-1 rounded transition-colors"
+                                           >
+                                             <Star size={10} /> Rate
+                                           </button>
+                                         )}
+                                      </div>
                                    </div>
                                 ))}
                              </div>
@@ -277,6 +294,14 @@ export default function MyOrdersPage() {
       </div>
 
       <Footer />
+      {selectedItemForReview && (
+        <ReviewModal 
+          isOpen={reviewModalOpen} 
+          onClose={() => setReviewModalOpen(false)} 
+          menuItemId={selectedItemForReview.id} 
+          itemName={selectedItemForReview.name} 
+        />
+      )}
     </main>
   );
 }

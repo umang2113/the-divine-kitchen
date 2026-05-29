@@ -44,6 +44,7 @@ export const createMenuItem = async (req: Request, res: Response) => {
       description: description || "",
       image_url: image_url || imageUrl || "",
       isAvailable: true,
+      stockQuantity: 999, // Default infinite-like stock
       isSpecial: isSpecial || false, // Keeping for backward compatibility flag
       createdAt: new Date().toISOString()
     };
@@ -64,7 +65,7 @@ export const updateMenuItem = async (req: Request, res: Response) => {
     const { 
       category_name, subcategory_name, catalogue_id, catalogue_name, 
       variant_id, variant_name, current_price, description, image_url,
-      isAvailable, isSpecial,
+      isAvailable, isSpecial, stockQuantity,
       name, price, category, imageUrl
     } = req.body;
 
@@ -83,6 +84,7 @@ export const updateMenuItem = async (req: Request, res: Response) => {
 
     if (isAvailable !== undefined) updateData.isAvailable = isAvailable;
     if (isSpecial !== undefined) updateData.isSpecial = isSpecial;
+    if (stockQuantity !== undefined) updateData.stockQuantity = stockQuantity;
 
     await db.collection('menu').doc(req.params.id).update(updateData);
     res.json({ message: 'Menu item updated successfully' });
@@ -123,6 +125,35 @@ export const toggleMenuAvailability = async (req: Request, res: Response) => {
     res.json({ message: 'Menu availability updated successfully' });
   } catch (error) {
     console.error("Toggle Menu Availability Error:", error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// @desc    Update stock quantity
+// @route   PATCH /api/menu/:id/stock
+// @access  Private/Staff/Admin
+export const updateMenuStock = async (req: Request, res: Response) => {
+  try {
+    const { stockQuantity } = req.body;
+    if (stockQuantity === undefined) {
+      return res.status(400).json({ message: 'stockQuantity is required' });
+    }
+    
+    const updateData: any = { 
+      stockQuantity: Number(stockQuantity),
+      updatedAt: new Date().toISOString()
+    };
+
+    // Auto-disable if out of stock
+    if (Number(stockQuantity) <= 0) {
+      updateData.isAvailable = false;
+    }
+
+    await db.collection('menu').doc(req.params.id).update(updateData);
+    
+    res.json({ message: 'Stock updated successfully' });
+  } catch (error) {
+    console.error("Update Stock Error:", error);
     res.status(500).json({ message: 'Server error' });
   }
 };

@@ -14,11 +14,29 @@ export const getDashboardStats = async (req: Request, res: Response) => {
     const totalReservations = reservationsSnapshot.size;
     const totalCustomers = customersSnapshot.size;
     
-    // Calculate total revenue
+    // Calculate total revenue and Best Sellers
     let totalRevenue = 0;
+    const itemCounts: Record<string, { name: string, count: number }> = {};
+
     ordersSnapshot.forEach(doc => {
-      totalRevenue += (doc.data().totalAmount || 0);
+      const order = doc.data();
+      totalRevenue += (order.totalAmount || 0);
+
+      // Aggregate Best Sellers
+      if (order.items && Array.isArray(order.items)) {
+        order.items.forEach((item: any) => {
+          if (itemCounts[item.id]) {
+            itemCounts[item.id].count += (item.quantity || 1);
+          } else {
+            itemCounts[item.id] = { name: item.name, count: (item.quantity || 1) };
+          }
+        });
+      }
     });
+
+    const bestSellers = Object.values(itemCounts)
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5); // Top 5
 
     const recentOrdersSnapshot = await db.collection('orders').orderBy('createdAt', 'desc').limit(5).get();
     const recentOrders = recentOrdersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -33,6 +51,7 @@ export const getDashboardStats = async (req: Request, res: Response) => {
         totalReservations,
         totalCustomers,
       },
+      bestSellers,
       recentOrders,
       upcomingReservations
     });

@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
-import { Search, ShoppingBag } from "lucide-react";
+import { Search, ShoppingBag, Leaf, Flame, Sparkles, Star } from "lucide-react";
 import { getMenuItems } from "@/lib/api";
 import { useCart } from "@/context/CartContext";
 
@@ -122,11 +122,18 @@ export default function MenuPage() {
               >
                 <div className="relative h-64 overflow-hidden bg-black/20 flex items-center justify-center">
                   <div className="absolute inset-0 bg-black/40 group-hover:bg-transparent transition-colors duration-500 z-10" />
-                  {item.isSpecial && (
-                    <span className="absolute top-4 right-4 z-20 bg-[var(--gold-primary)] text-black text-xs font-bold px-3 py-1 uppercase tracking-widest rounded-sm">
-                      Chef Special
-                    </span>
-                  )}
+                  <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
+                    {item.isSpecial && (
+                      <span className="bg-[var(--gold-primary)] text-black text-[10px] uppercase font-bold tracking-widest px-3 py-1 flex items-center gap-1 shadow-lg backdrop-blur-md">
+                        <Sparkles size={12} /> Chef's Special
+                      </span>
+                    )}
+                    {item.averageRating && (
+                      <span className="bg-black/80 text-[var(--gold-primary)] border border-[var(--gold-primary)]/30 text-[10px] uppercase font-bold tracking-widest px-2 py-1 flex items-center gap-1 backdrop-blur-md">
+                        <Star size={10} className="fill-[var(--gold-primary)]" /> {item.averageRating.toFixed(1)} ({item.reviewsCount})
+                      </span>
+                    )}
+                  </div>
                   {(item.image_url || item.image || item.imageUrl) ? (
                     <Image 
                       src={item.image_url || item.image || item.imageUrl} 

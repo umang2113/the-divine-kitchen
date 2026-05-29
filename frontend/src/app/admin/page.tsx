@@ -15,6 +15,7 @@ export default function AdminOverview() {
   const [stats, setStats] = useState<any>(null);
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
   const [upcomingReservations, setUpcomingReservations] = useState<any[]>([]);
+  const [bestSellers, setBestSellers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -29,6 +30,7 @@ export default function AdminOverview() {
         setStats(data.stats);
         setRecentOrders(data.recentOrders);
         setUpcomingReservations(data.upcomingReservations);
+        setBestSellers(data.bestSellers || []);
       }
     } catch (error) {
       console.error("Error fetching stats:", error);
@@ -63,8 +65,8 @@ export default function AdminOverview() {
         })}
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-12">
-        <div className="bg-[var(--surface-dark)] border border-[var(--surface-border)] p-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="bg-[var(--surface-dark)] border border-[var(--surface-border)] p-8 col-span-1 lg:col-span-2">
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-lg font-serif text-white uppercase tracking-widest">Recent Orders</h3>
             <Link href="/admin/orders" className="text-[10px] uppercase text-[var(--gold-primary)] font-bold hover:underline">View All</Link>
@@ -97,6 +99,26 @@ export default function AdminOverview() {
                 <span className="text-[10px] uppercase tracking-widest font-bold text-gray-400 bg-white/5 px-2 py-1">{res.guests} Guests</span>
               </div>
             ))}
+          </div>
+        </div>
+
+        <div className="bg-[var(--surface-dark)] border border-[var(--surface-border)] p-8">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-lg font-serif text-white uppercase tracking-widest">Best Sellers</h3>
+          </div>
+          <div className="space-y-4">
+            {bestSellers.map((item: any, idx: number) => (
+              <div key={idx} className="flex justify-between items-center p-4 border border-[var(--surface-border)]/50 bg-black/20">
+                <div className="flex items-center gap-4">
+                  <span className="text-[var(--gold-primary)] font-serif text-xl">#{idx + 1}</span>
+                  <p className="text-white text-sm font-bold uppercase tracking-widest">{item.name}</p>
+                </div>
+                <span className="text-[10px] uppercase tracking-widest font-bold text-gray-400 bg-white/5 px-2 py-1">{item.count} Sold</span>
+              </div>
+            ))}
+            {bestSellers.length === 0 && (
+              <p className="text-gray-500 uppercase tracking-widest text-xs text-center">No sales data yet</p>
+            )}
           </div>
         </div>
       </div>

@@ -34,6 +34,29 @@ export const createOrder = async (req: Request, res: Response) => {
     const docRef = await db.collection('orders').add(orderData);
     const orderWithId = { id: docRef.id, ...orderData };
 
+    // Decrement Stock for all ordered items
+    if (items && Array.isArray(items)) {
+      items.forEach(async (item: any) => {
+        if (item.id) {
+          try {
+            const itemRef = db.collection('menu').doc(item.id);
+            const itemDoc = await itemRef.get();
+            if (itemDoc.exists) {
+              const currentStock = itemDoc.data()?.stockQuantity || 0;
+              const newStock = Math.max(0, currentStock - (item.quantity || 1));
+              const isAvailable = newStock > 0;
+              await itemRef.update({ 
+                stockQuantity: newStock,
+                isAvailable: isAvailable 
+              });
+            }
+          } catch (e) {
+            console.error(`Failed to update stock for ${item.id}`, e);
+          }
+        }
+      });
+    }
+
     // Send Premium Email Confirmation ONLY for COD (online payments send confirmation upon successful callback)
     // For POS orders, we skip email unless they specifically provided one (but we'll skip by default for now)
     if (!isOnlinePay && !isPOS && shippingDetails?.email) {

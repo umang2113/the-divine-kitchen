@@ -12,7 +12,8 @@ export default function CheckoutPage() {
   const { cart, cartTotal, clearCart } = useCart();
   const [loading, setLoading] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<"COD" | "Razorpay">("COD");
+  const [paymentMethod, setPaymentMethod] = useState<"COD" | "Razorpay" | "Counter">("COD");
+  const [tableId, setTableId] = useState<string | null>(null);
   const router = useRouter();
 
   const [formData, setFormData] = useState({
@@ -34,6 +35,13 @@ export default function CheckoutPage() {
       if (paymentStatus === "failed") {
         alert(`Payment Failed: ${msg || "Transaction was cancelled."}`);
         window.history.replaceState({}, document.title, window.location.pathname);
+      }
+      }
+      
+      const dineIn = localStorage.getItem("dineInTable");
+      if (dineIn) {
+        setTableId(dineIn);
+        setPaymentMethod("Counter");
       }
     }
   }, []);
@@ -133,8 +141,10 @@ export default function CheckoutPage() {
           quantity: item.quantity
         })),
         totalAmount: cartTotal,
-        shippingDetails: formData,
-        paymentMethod: paymentMethod === "COD" ? "Cash on Delivery" : "Razorpay Online"
+        shippingDetails: tableId ? { ...formData, address: `Table ${tableId}`, city: "Dine-in" } : formData,
+        paymentMethod: paymentMethod === "Counter" ? "Pay at Counter" : (paymentMethod === "COD" ? "Cash on Delivery" : "Razorpay Online"),
+        orderType: tableId ? "dine_in" : "delivery",
+        tableNo: tableId || null
       };
 
       const result = await placeOrder(orderData);
@@ -143,9 +153,10 @@ export default function CheckoutPage() {
         throw new Error("Failed to place order");
       }
 
-      if (paymentMethod === "COD") {
-        alert("Order Placed Successfully! We've sent a confirmation email.");
+      if (paymentMethod === "COD" || paymentMethod === "Counter") {
+        alert("Order Placed Successfully! We'll start preparing it immediately.");
         clearCart();
+        if (tableId) localStorage.removeItem("dineInTable"); // Clear table session after order
         router.push("/my-orders");
       } else {
         // Razorpay online payment flow
@@ -268,7 +279,9 @@ export default function CheckoutPage() {
           
           <form onSubmit={handlePlaceOrder} className="space-y-8">
             <div className="bg-[var(--surface-dark)] border border-[var(--surface-border)] p-8 space-y-6">
-              <h3 className="text-lg font-serif text-white uppercase tracking-widest border-b border-[var(--surface-border)] pb-4 mb-6">Shipping Details</h3>
+              <h3 className="text-lg font-serif text-white uppercase tracking-widest border-b border-[var(--surface-border)] pb-4 mb-6">
+                {tableId ? "Guest Details" : "Shipping Details"}
+              </h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <input 
@@ -283,63 +296,80 @@ export default function CheckoutPage() {
                 />
               </div>
               
-              <input 
-                type="text" name="phone" placeholder="Phone Number" required 
-                onChange={handleInputChange}
-                className="w-full bg-background border border-[var(--surface-border)] p-4 text-white focus:border-[var(--gold-primary)] outline-none" 
-              />
+                <input 
+                  type="text" name="phone" placeholder="Phone Number" required 
+                  onChange={handleInputChange}
+                  className="w-full bg-background border border-[var(--surface-border)] p-4 text-white focus:border-[var(--gold-primary)] outline-none" 
+                />
               
-              <div className="relative">
-                <input 
-                  type="text" name="address" placeholder="Delivery Address" required 
-                  value={formData.address}
-                  onChange={handleInputChange}
-                  className="w-full bg-background border border-[var(--surface-border)] p-4 pr-12 text-white focus:border-[var(--gold-primary)] outline-none" 
-                />
-                <button 
-                  type="button"
-                  onClick={handleGetLocation}
-                  disabled={isLocating}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-[var(--gold-primary)] hover:text-white transition-colors disabled:opacity-50"
-                  title="Detect My Location"
-                >
-                  {isLocating ? (
-                    <div className="w-5 h-5 border-2 border-[var(--gold-primary)] border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <Navigation size={20} />
-                  )}
-                </button>
-              </div>
+              {!tableId && (
+                <>
+                  <div className="relative">
+                    <input 
+                      type="text" name="address" placeholder="Delivery Address" required={!tableId} 
+                      value={formData.address}
+                      onChange={handleInputChange}
+                      className="w-full bg-background border border-[var(--surface-border)] p-4 pr-12 text-white focus:border-[var(--gold-primary)] outline-none" 
+                    />
+                    <button 
+                      type="button"
+                      onClick={handleGetLocation}
+                      disabled={isLocating}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-[var(--gold-primary)] hover:text-white transition-colors disabled:opacity-50"
+                      title="Detect My Location"
+                    >
+                      {isLocating ? (
+                        <div className="w-5 h-5 border-2 border-[var(--gold-primary)] border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <Navigation size={20} />
+                      )}
+                    </button>
+                  </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <input 
-                  type="text" name="city" placeholder="City" required 
-                  value={formData.city}
-                  onChange={handleInputChange}
-                  className="w-full bg-background border border-[var(--surface-border)] p-4 text-white focus:border-[var(--gold-primary)] outline-none" 
-                />
-                <input 
-                  type="text" name="zipCode" placeholder="Zip Code" required 
-                  value={formData.zipCode}
-                  onChange={handleInputChange}
-                  className="w-full bg-background border border-[var(--surface-border)] p-4 text-white focus:border-[var(--gold-primary)] outline-none" 
-                />
-              </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <input 
+                      type="text" name="city" placeholder="City" required={!tableId} 
+                      value={formData.city}
+                      onChange={handleInputChange}
+                      className="w-full bg-background border border-[var(--surface-border)] p-4 text-white focus:border-[var(--gold-primary)] outline-none" 
+                    />
+                    <input 
+                      type="text" name="zipCode" placeholder="Zip Code" required={!tableId} 
+                      value={formData.zipCode}
+                      onChange={handleInputChange}
+                      className="w-full bg-background border border-[var(--surface-border)] p-4 text-white focus:border-[var(--gold-primary)] outline-none" 
+                    />
+                  </div>
+                </>
+              )}
             </div>
 
             <div className="bg-[var(--surface-dark)] border border-[var(--surface-border)] p-8">
               <h3 className="text-lg font-serif text-white uppercase tracking-widest border-b border-[var(--surface-border)] pb-4 mb-6">Payment Method</h3>
               <div className="flex flex-col gap-4">
-                <label className="flex items-center gap-4 cursor-pointer group">
-                  <input 
-                    type="radio" 
-                    name="payment" 
-                    checked={paymentMethod === "COD"} 
-                    onChange={() => setPaymentMethod("COD")}
-                    className="accent-[var(--gold-primary)]" 
-                  />
-                  <span className="text-gray-300 group-hover:text-white">Cash on Delivery (COD)</span>
-                </label>
+                {tableId ? (
+                  <label className="flex items-center gap-4 cursor-pointer group">
+                    <input 
+                      type="radio" 
+                      name="payment" 
+                      checked={paymentMethod === "Counter"} 
+                      onChange={() => setPaymentMethod("Counter")}
+                      className="accent-[var(--gold-primary)]" 
+                    />
+                    <span className="text-gray-300 group-hover:text-white">Pay at Counter (after meal)</span>
+                  </label>
+                ) : (
+                  <label className="flex items-center gap-4 cursor-pointer group">
+                    <input 
+                      type="radio" 
+                      name="payment" 
+                      checked={paymentMethod === "COD"} 
+                      onChange={() => setPaymentMethod("COD")}
+                      className="accent-[var(--gold-primary)]" 
+                    />
+                    <span className="text-gray-300 group-hover:text-white">Cash on Delivery (COD)</span>
+                  </label>
+                )}
                 <label className="flex items-center gap-4 cursor-pointer group">
                   <input 
                     type="radio" 

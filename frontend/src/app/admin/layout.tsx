@@ -9,6 +9,8 @@ import {
   Users, 
   Settings,
   Package,
+  Shield,
+  QrCode,
   LogOut,
   ArrowLeft,
   Receipt,
@@ -29,7 +31,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const token = localStorage.getItem("token");
     const role = localStorage.getItem("userRole");
 
-    if (!token || role !== "admin") {
+    if (!token || !['admin', 'system_admin', 'staff'].includes(role || '')) {
       router.push("/login");
       return;
     }
@@ -54,6 +56,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { id: "reservations", name: "Reservations", icon: CalendarClock, href: "/admin/reservations" },
     { id: "menu", name: "Menu Manager", icon: UtensilsCrossed, href: "/admin/menu" },
     { id: "inventory", name: "Inventory", icon: Package, href: "/admin/inventory" },
+    { id: "tables", name: "QR Tables", icon: QrCode, href: "/admin/tables" },
+    { id: "roles", name: "Role Manager", icon: Shield, href: "/admin/roles" },
     { id: "customers", name: "Customers", icon: Users, href: "/admin/customers" },
     { id: "settings", name: "Settings", icon: Settings, href: "/admin/settings" }
   ];

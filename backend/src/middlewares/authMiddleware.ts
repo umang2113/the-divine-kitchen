@@ -40,7 +40,7 @@ export const optionalAuth = (req: AuthRequest, res: Response, next: NextFunction
 };
 
 export const admin = (req: AuthRequest, res: Response, next: NextFunction) => {
-  if (req.user && req.user.role === 'admin') {
+  if (req.user && (req.user.role === 'admin' || req.user.role === 'system_admin')) {
     next();
   } else {
     res.status(403).json({ message: 'Not authorized as an admin' });
@@ -48,9 +48,25 @@ export const admin = (req: AuthRequest, res: Response, next: NextFunction) => {
 };
 
 export const staffOrAdmin = (req: AuthRequest, res: Response, next: NextFunction) => {
-  if (req.user && (req.user.role === 'admin' || req.user.role === 'staff')) {
+  if (req.user && (req.user.role === 'admin' || req.user.role === 'staff' || req.user.role === 'system_admin')) {
     next();
   } else {
     res.status(403).json({ message: 'Not authorized as staff or admin' });
+  }
+};
+
+export const deliveryBoy = (req: AuthRequest, res: Response, next: NextFunction) => {
+  if (req.user && (req.user.role === 'delivery_boy' || req.user.role === 'admin' || req.user.role === 'system_admin')) {
+    next();
+  } else {
+    res.status(403).json({ message: 'Not authorized for delivery access' });
+  }
+};
+
+export const systemAdmin = (req: AuthRequest, res: Response, next: NextFunction) => {
+  if (req.user && req.user.role === 'system_admin') {
+    next();
+  } else {
+    res.status(403).json({ message: 'Not authorized as System Admin' });
   }
 };

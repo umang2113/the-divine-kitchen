@@ -73,3 +73,33 @@ export const getUsers = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+
+// @desc    Update User Role
+// @route   PATCH /api/admin/users/:id/role
+// @access  Private/Admin
+export const updateUserRole = async (req: Request, res: Response) => {
+  try {
+    const { role } = req.body;
+    const validRoles = ['customer', 'staff', 'delivery_boy', 'admin', 'system_admin'];
+    
+    if (!role || !validRoles.includes(role)) {
+      return res.status(400).json({ message: 'Invalid role' });
+    }
+
+    // Optional: Prevent admins from assigning system_admin unless they are system_admin themselves.
+    const currentUserRole = (req as any).user?.role;
+    if (role === 'system_admin' && currentUserRole !== 'system_admin') {
+      return res.status(403).json({ message: 'Only System Admins can assign the system_admin role' });
+    }
+
+    await db.collection('users').doc(req.params.id).update({ 
+      role,
+      updatedAt: new Date().toISOString()
+    });
+    
+    res.json({ message: 'User role updated successfully' });
+  } catch (error) {
+    console.error("Update User Role Error:", error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};

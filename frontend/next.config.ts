@@ -6,7 +6,6 @@ const withPWA = withPWAInit({
   disable: process.env.NODE_ENV === "development",
 });
 const nextConfig: NextConfig = {
-  output: 'export',
   turbopack: {},
   images: {
     unoptimized: true,

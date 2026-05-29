@@ -36,7 +36,6 @@ export default function CheckoutPage() {
         alert(`Payment Failed: ${msg || "Transaction was cancelled."}`);
         window.history.replaceState({}, document.title, window.location.pathname);
       }
-      }
       
       const dineIn = localStorage.getItem("dineInTable");
       if (dineIn) {
@@ -430,4 +429,5 @@ export default function CheckoutPage() {
       </div>
     </main>
   );
+}
 }

@@ -9,9 +9,9 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/icons/icon.svg",
+      "src": "/icons/app-icon.jpeg",
       "sizes": "any",
-      "type": "image/svg+xml"
+      "type": "image/jpeg"
     }
   ]
 }

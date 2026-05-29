@@ -63,12 +63,6 @@ export default function CheckoutPage() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleGetLocation = () => {
-    if (!navigator.geolocation) {
-      alert("Geolocation is not supported by your browser");
-      return;
-    }
-
   const fetchAddressFromCoords = async (latitude: number, longitude: number) => {
     try {
       const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
@@ -429,5 +423,4 @@ export default function CheckoutPage() {
       </div>
     </main>
   );
-}
 }

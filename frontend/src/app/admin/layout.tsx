@@ -15,17 +15,20 @@ import {
   ArrowLeft,
   Receipt,
   Menu,
-  X
+  X,
+  Download
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import clsx from "clsx";
+import { usePWA } from "@/context/PWAContext";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { isInstallable, installApp } = usePWA();
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -116,6 +119,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </nav>
         
         <div className="p-4 border-t border-[var(--surface-border)] space-y-2 bg-[var(--surface-dark)]">
+           {isInstallable && (
+             <button 
+               onClick={installApp} 
+               className="w-full flex items-center gap-4 px-4 py-3 text-[10px] uppercase tracking-widest font-bold text-[var(--gold-primary)] hover:bg-[var(--gold-primary)]/10 transition-all rounded"
+             >
+               <Download size={18} /> Install App
+             </button>
+           )}
            <Link href="/" className="flex items-center gap-4 px-4 py-3 text-[10px] uppercase tracking-widest font-bold text-gray-500 hover:text-white transition-all">
              <ArrowLeft size={18} /> Back to Store
            </Link>
